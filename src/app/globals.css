@@ -1,17 +1,16 @@
 :root {
-  --bg-base: #0b0914;
+  --bg-base: #0B0914;
   --bg-surface: #161224;
   --bg-surface-hover: #221c38;
-  --text-primary: #f5f3f9;
-  --text-muted: #9d95b2;
-  --accent-primary: #e035a2;
-  --accent-glow: rgba(224, 53, 162, 0.2);
-  --accent-secondary: #8b5cf6;
+  --text-primary: #ffffff;
+  --text-muted: #888888;
+  --accent-primary: #7C5CFC;
+  --accent-glow: rgba(124, 92, 252, 0.2);
   --border-default: #2d2447;
   --border-active: #584485;
-  --state-error: #f43f5e;
-  --state-warning: #f59e0b;
-  --state-success: #10b981;
+  --state-error: #FF5B5B;
+  --state-warning: #FFB648;
+  --state-success: #3DD598;
 }
 
 * {
@@ -112,25 +111,54 @@ body {
 }
 
 .badge-error {
-  background: rgba(244, 63, 94, 0.15);
+  background: rgba(255, 91, 91, 0.15);
   color: var(--state-error);
-  border: 1px solid rgba(244, 63, 94, 0.3);
+  border: 1px solid rgba(255, 91, 91, 0.3);
 }
 
 .badge-warning {
-  background: rgba(245, 158, 11, 0.15);
+  background: rgba(255, 182, 72, 0.15);
   color: var(--state-warning);
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  border: 1px solid rgba(255, 182, 72, 0.3);
 }
 
 .badge-success {
-  background: rgba(16, 185, 129, 0.15);
+  background: rgba(61, 213, 152, 0.15);
   color: var(--state-success);
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  border: 1px solid rgba(61, 213, 152, 0.3);
 }
 
 .badge-accent {
-  background: rgba(224, 53, 162, 0.15);
+  background: rgba(124, 92, 252, 0.15);
   color: var(--accent-primary);
-  border: 1px solid rgba(224, 53, 162, 0.3);
+  border: 1px solid rgba(124, 92, 252, 0.3);
 }
+
+/* Responsive Grid System */
+.grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+
+@media (max-width: 1024px) {
+  .grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .grid-4 {
+    grid-template-columns: 1fr;
+  }
+}
+

@@ -1,5 +1,6 @@
 import "./globals.css";
 import React from "react";
+import { Providers } from "@/components/layout/Providers";
 
 export const metadata = {
   title: "Bias-Aware 360° Review Intelligence System",
@@ -13,7 +14,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }
