@@ -11,15 +11,28 @@ interface SidebarProps {
 
 export function Sidebar({ role, activePath = "/dashboard" }: SidebarProps) {
   const employeeLinks = [
-    { name: "Dashboard Overview", path: "/dashboard/employee" },
-    { name: "My Goals", path: "/dashboard/employee" },
-    { name: "Self Assessments & Notes", path: "/dashboard/employee" },
+    { name: "🏠 Dashboard Overview", path: "/dashboard/employee" },
+    { name: "🎯 My Goals", path: "/dashboard/employee/goals" },
+    { name: "📝 Self Assessments & Notes", path: "/dashboard/employee/assessments" },
+    { name: "📅 Upcoming Deadlines", path: "/dashboard/employee/deadlines" },
+    { name: "💬 Manager Feedback", path: "/dashboard/employee/feedback" },
+    { name: "⚖️ Fairness Report", path: "/dashboard/employee/fairness" },
+    { name: "🤖 AI Assistant", path: "/dashboard/employee/ai-assistant" },
+    { name: "📜 Activity History", path: "/dashboard/employee/activity" },
+    { name: "👤 Profile & Settings", path: "/dashboard/employee/profile" },
   ];
 
   const managerLinks = [
-    { name: "Dashboard Overview", path: "/dashboard/manager" },
-    { name: "Employee Directory", path: "/dashboard/manager" },
-    { name: "Review Workspaces", path: "/workspace/emp-001" },
+    { name: "🏠 Dashboard Overview", path: "/dashboard/manager" },
+    { name: "👥 Employee Directory", path: "/dashboard/manager/directory" },
+    { name: "🎯 Goal Management", path: "/dashboard/manager/goals" },
+    { name: "📝 Review Workspace", path: "/dashboard/manager/workspace" },
+    { name: "📊 Performance Analytics", path: "/dashboard/manager/analytics" },
+    { name: "⚖️ Fairness Analytics", path: "/dashboard/manager/fairness" },
+    { name: "📅 Review Schedule", path: "/dashboard/manager/schedule" },
+    { name: "📜 Audit Logs", path: "/dashboard/manager/audit-logs" },
+    { name: "🤖 AI Assistant", path: "/dashboard/manager/ai-assistant" },
+    { name: "👤 Profile & Settings", path: "/dashboard/manager/profile" },
   ];
 
   const links = role === "manager" ? managerLinks : employeeLinks;

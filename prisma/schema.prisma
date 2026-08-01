@@ -43,7 +43,34 @@ model User {
   receivedFeedback Feedback[] @relation("FeedbackTarget")
   givenFeedback    Feedback[] @relation("FeedbackAuthor")
 
+  receivedReviews  PerformanceReview[] @relation("ReviewEmployee")
+  createdReviews   PerformanceReview[] @relation("ReviewManager")
+
   auditLogs        AuditLog[]
+}
+
+model PerformanceReview {
+  id                    String   @id @default(cuid())
+  employeeId            String
+  employee              User     @relation("ReviewEmployee", fields: [employeeId], references: [id])
+  
+  managerId             String
+  manager               User     @relation("ReviewManager", fields: [managerId], references: [id])
+
+  status                String   @default("DRAFT") // "DRAFT", "APPROVED", "CHANGES_REQUESTED"
+  rating                String   // "Excellent", "Good", "Satisfactory", "Needs Improvement"
+  
+  performanceSummary    String
+  keyStrengths          String
+  areasForImprovement   String
+  goalAchievement       String
+  collaborationComm     String
+  aiRecommendations     String
+  evidenceUsed          String   // JSON string of evidence IDs / titles
+
+  version               Int      @default(1)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 }
 
 model Goal {

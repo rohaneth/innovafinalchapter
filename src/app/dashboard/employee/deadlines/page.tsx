@@ -5,7 +5,7 @@ import prisma from "@/lib/db";
 import { redirect } from "next/navigation";
 import { EmployeeDashboardView } from "@/components/dashboard/EmployeeDashboardView";
 
-export default async function EmployeeDashboardOverviewPage() {
+export default async function EmployeeDeadlinesPage() {
   const session = await getServerSession(authOptions);
   if (!session || !session.user || session.user.role !== "Employee") {
     redirect("/login");
@@ -18,19 +18,8 @@ export default async function EmployeeDashboardOverviewPage() {
         include: { project: true },
         orderBy: { createdAt: "desc" },
       },
-      submissions: {
-        orderBy: { createdAt: "desc" },
-        take: 10,
-      },
-      receivedFeedback: {
-        include: { author: { select: { email: true, role: true } } },
-        orderBy: { createdAt: "desc" },
-        take: 10,
-      },
-      auditLogs: {
-        orderBy: { timestamp: "desc" },
-        take: 10,
-      },
+      submissions: { orderBy: { createdAt: "desc" }, take: 10 },
+      receivedFeedback: { include: { author: { select: { email: true, role: true } } } },
     },
   });
 
@@ -42,8 +31,7 @@ export default async function EmployeeDashboardOverviewPage() {
       goals={user.assignedGoals}
       submissions={user.submissions}
       managerFeedback={user.receivedFeedback}
-      auditLogs={user.auditLogs}
-      activeSection="overview"
+      activeSection="deadlines"
     />
   );
 }
