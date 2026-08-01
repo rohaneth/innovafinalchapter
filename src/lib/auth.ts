@@ -20,9 +20,11 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        const user = await prisma.user.findUnique({
+        const normalizedEmail = credentials.email.trim().toLowerCase();
+
+        const user = await prisma.user.findFirst({
           where: {
-            email: credentials.email,
+            email: normalizedEmail,
           },
         });
 
@@ -31,7 +33,7 @@ export const authOptions: NextAuthOptions = {
         }
 
         const isPasswordValid = await bcrypt.compare(
-          credentials.password,
+          credentials.password.trim(),
           user.passwordHash
         );
 
@@ -72,7 +74,6 @@ export const authOptions: NextAuthOptions = {
   logger: {
     error(code, metadata) {
       if (code === "JWT_SESSION_ERROR") {
-        // Suppress console error overlays for stale/invalid browser cookies
         return;
       }
       console.error(code, metadata);

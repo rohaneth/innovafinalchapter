@@ -1,13 +1,15 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import bcrypt from "bcryptjs";
+import path from "path";
 
-const dbUrl = process.env.DATABASE_URL || "file:./dev.db";
+const dbPath = path.resolve(process.cwd(), "dev.db").replace(/\\/g, "/");
+const dbUrl = `file:${dbPath}`;
 const adapter = new PrismaBetterSqlite3({ url: dbUrl });
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  console.log("Seeding database...");
+  console.log(`Seeding database at absolute path: ${dbPath}...`);
 
   // 1. Create Company
   const company = await prisma.company.upsert({
@@ -24,7 +26,7 @@ async function main() {
   // 2. Create Manager
   const manager = await prisma.user.upsert({
     where: { email: "manager@company.com" },
-    update: { role: "Manager", companyId: company.id },
+    update: { role: "Manager", companyId: company.id, passwordHash },
     create: {
       id: "mgr-001",
       email: "manager@company.com",
@@ -37,7 +39,7 @@ async function main() {
   // 3. Create Employee 1
   const employee1 = await prisma.user.upsert({
     where: { email: "employee@company.com" },
-    update: { role: "Employee", companyId: company.id },
+    update: { role: "Employee", companyId: company.id, passwordHash },
     create: {
       id: "emp-001",
       email: "employee@company.com",
@@ -50,7 +52,7 @@ async function main() {
   // 4. Create Employee 2
   const employee2 = await prisma.user.upsert({
     where: { email: "sarah@company.com" },
-    update: { role: "Employee", companyId: company.id },
+    update: { role: "Employee", companyId: company.id, passwordHash },
     create: {
       id: "emp-002",
       email: "sarah@company.com",
@@ -61,6 +63,7 @@ async function main() {
   });
 
   // 5. Create Sample Goals
+  await prisma.goal.deleteMany({});
   await prisma.goal.createMany({
     data: [
       {
@@ -94,6 +97,7 @@ async function main() {
   });
 
   // 6. Create Sample Submissions
+  await prisma.submission.deleteMany({});
   await prisma.submission.createMany({
     data: [
       {
