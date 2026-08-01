@@ -16,16 +16,46 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const validate = () => {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      setError("Please enter an email address.");
+      return false;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      setError("Please enter a valid email address (e.g. name@company.com).");
+      return false;
+    }
+    if (!password) {
+      setError("Please enter a password.");
+      return false;
+    }
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters long.");
+      return false;
+    }
+    return true;
+  };
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError("");
+
+    if (!validate()) return;
+
+    setLoading(true);
 
     try {
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, role, companyName }),
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          password: password.trim(),
+          role,
+          companyName: companyName.trim(),
+        }),
       });
 
       const json = await res.json();
@@ -36,13 +66,15 @@ export default function SignupPage() {
 
       // Automatically sign in upon successful database creation
       const signInRes = await signIn("credentials", {
-        email,
-        password,
+        email: email.trim().toLowerCase(),
+        password: password.trim(),
         redirect: false,
       });
 
       if (signInRes?.error) {
-        throw new Error("Account created! Please sign in.");
+        // Account created, redirecting to login page with message
+        router.push("/login?message=Account+created.+Please+sign+in.");
+        return;
       }
 
       router.push("/dashboard");
@@ -78,11 +110,13 @@ export default function SignupPage() {
         {error && (
           <div
             style={{
-              padding: "10px",
+              padding: "12px",
               background: "rgba(244, 63, 94, 0.15)",
+              border: "1px solid var(--state-error)",
               color: "var(--state-error)",
               borderRadius: "6px",
               fontSize: "13px",
+              lineHeight: "1.4",
             }}
           >
             {error}
@@ -184,3 +218,4 @@ export default function SignupPage() {
     </div>
   );
 }
+

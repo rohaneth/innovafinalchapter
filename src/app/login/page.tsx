@@ -14,23 +14,56 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const validate = () => {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      setError("Please enter your email address.");
+      return false;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      setError("Please enter a valid email address (e.g. name@company.com).");
+      return false;
+    }
+    if (!password) {
+      setError("Please enter your password.");
+      return false;
+    }
+    return true;
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError("");
 
-    const res = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
+    if (!validate()) return;
 
-    if (res?.error) {
-      setError("Invalid email or password");
+    setLoading(true);
+
+    try {
+      const res = await signIn("credentials", {
+        email: email.trim().toLowerCase(),
+        password: password.trim(),
+        redirect: false,
+      });
+
+      if (res?.error) {
+        if (res.error === "CredentialsSignin") {
+          setError("Invalid email or password. Please check your credentials and try again.");
+        } else {
+          setError(res.error || "Unable to sign in. Please try again later.");
+        }
+        setLoading(false);
+      } else if (res?.ok) {
+        router.push("/dashboard");
+        router.refresh();
+      } else {
+        setError("An unexpected error occurred during login. Please try again.");
+        setLoading(false);
+      }
+    } catch (err: any) {
+      setError(err?.message || "Connection error. Please check your network and try again.");
       setLoading(false);
-    } else {
-      router.push("/dashboard");
-      router.refresh();
     }
   };
 
@@ -38,18 +71,26 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
 
-    const res = await signIn("credentials", {
-      email: demoEmail,
-      password: "password123",
-      redirect: false,
-    });
+    try {
+      const res = await signIn("credentials", {
+        email: demoEmail.trim().toLowerCase(),
+        password: "password123",
+        redirect: false,
+      });
 
-    if (res?.error) {
-      setError("Failed to sign in with demo account");
+      if (res?.error) {
+        setError("Failed to sign in with demo account. Please ensure the database is seeded.");
+        setLoading(false);
+      } else if (res?.ok) {
+        router.push("/dashboard");
+        router.refresh();
+      } else {
+        setError("An error occurred during quick sign in.");
+        setLoading(false);
+      }
+    } catch (err: any) {
+      setError(err?.message || "Connection error during quick sign in.");
       setLoading(false);
-    } else {
-      router.push("/dashboard");
-      router.refresh();
     }
   };
 
@@ -78,11 +119,13 @@ export default function LoginPage() {
         {error && (
           <div
             style={{
-              padding: "10px",
+              padding: "12px",
               background: "rgba(244, 63, 94, 0.15)",
+              border: "1px solid var(--state-error)",
               color: "var(--state-error)",
               borderRadius: "6px",
               fontSize: "13px",
+              lineHeight: "1.4",
             }}
           >
             {error}
@@ -188,3 +231,4 @@ export default function LoginPage() {
     </div>
   );
 }
+
