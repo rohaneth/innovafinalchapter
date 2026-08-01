@@ -1,0 +1,40 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id               String     @id @default(uuid())
+  email            String     @unique
+  name             String
+  role             String     @default("Employee")
+  feedbackGiven    Feedback[] @relation("FeedbackSource")
+  feedbackReceived Feedback[] @relation("FeedbackTarget")
+}
+
+model Feedback {
+  id           String   @id @default(uuid())
+  sourceUserId String
+  targetUserId String
+  content      String
+  timestamp    DateTime @default(now())
+
+  sourceUser User @relation("FeedbackSource", fields: [sourceUserId], references: [id])
+  targetUser User @relation("FeedbackTarget", fields: [targetUserId], references: [id])
+}
+
+model EvidenceChunk {
+  id       String @id @default(uuid())
+  content  String
+  metadata Json
+  // Unsupported("vector(1536)") requires pgvector.
+  // Using Unsupported type requires Prisma to handle it as raw, or we can use the newer native types if supported.
+  // For now, we'll keep it simple, since pgvector operations are typically raw SQL in Prisma.
+  // embedding Unsupported("vector(1536)")?
+}
