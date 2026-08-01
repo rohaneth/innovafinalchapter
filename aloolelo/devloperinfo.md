@@ -108,13 +108,14 @@ src/app/api/review/
 
 ### Tasks
 
-* [ ] Build responsive dashboard (id: 15)
-* [ ] Employee sidebar (id: 16)
-* [ ] Editable report (id: 17)
-* [ ] Auditor inspector (id: 18)
-* [ ] Change tracking (id: 19)
-* [ ] Audit trail (id: 20)
-* [ ] Approval & release flow (id: 21)
+* [x] Build responsive dashboard (id: 15)
+* [x] Employee sidebar (id: 16)
+* [x] Editable report (id: 17)
+* [x] Auditor inspector (id: 18)
+* [x] Change tracking (id: 19)
+* [x] Audit trail (id: 20)
+* [x] Approval & release flow (id: 21)
+
 
 *Folders*
 

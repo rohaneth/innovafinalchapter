@@ -27,6 +27,14 @@
   - [x] Implemented Synthesizer node with citation generation (`lib/agents/synthesizer.ts`).
   - [x] Implemented Auditor node for bias & gap detection (`lib/agents/auditor.ts`).
   - [x] Created unified API route handler (`app/api/review/route.ts`).
+- **Unit 4: Human-in-the-Loop Review Dashboard (Developer 4)**:
+  - [x] Built Next.js dark theme responsive layout & CSS tokens (`globals.css`, `layout.tsx`, `Header.tsx`).
+  - [x] Implemented 3-column Split Workspace (`LeftSidebar.tsx`, `CenterCanvas.tsx`, `RightInspector.tsx`).
+  - [x] Implemented inline citation inspector & raw evidence detail drawer.
+  - [x] Implemented interactive manual review editing and change tracking.
+  - [x] Implemented append-only audit trail logging system (`auditLogs`).
+  - [x] Implemented approval and release gate mechanism (`isApproved`).
+
 
 
 ## Next Up
