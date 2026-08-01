@@ -33,8 +33,5 @@ model EvidenceChunk {
   id       String @id @default(uuid())
   content  String
   metadata Json
-  // Unsupported("vector(1536)") requires pgvector.
-  // Using Unsupported type requires Prisma to handle it as raw, or we can use the newer native types if supported.
-  // For now, we'll keep it simple, since pgvector operations are typically raw SQL in Prisma.
-  // embedding Unsupported("vector(1536)")?
+  embedding Unsupported("vector(1536)")?
 }
