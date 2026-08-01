@@ -4,6 +4,7 @@ import prisma from "@/lib/db";
 import bcrypt from "bcryptjs";
 
 export const authOptions: NextAuthOptions = {
+  secret: process.env.NEXTAUTH_SECRET || "innovafinalchapter-super-secret-key-360",
   session: {
     strategy: "jwt",
   },
@@ -12,7 +13,7 @@ export const authOptions: NextAuthOptions = {
       name: "Credentials",
       credentials: {
         email: { label: "Email", type: "email", placeholder: "alex@company.com" },
-        password: { label: "Password", type: "password" }
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
@@ -21,8 +22,8 @@ export const authOptions: NextAuthOptions = {
 
         const user = await prisma.user.findUnique({
           where: {
-            email: credentials.email
-          }
+            email: credentials.email,
+          },
         });
 
         if (!user) {
@@ -44,8 +45,8 @@ export const authOptions: NextAuthOptions = {
           role: user.role,
           companyId: user.companyId,
         };
-      }
-    })
+      },
+    }),
   ],
   callbacks: {
     async jwt({ token, user }) {
@@ -66,9 +67,9 @@ export const authOptions: NextAuthOptions = {
         };
       }
       return session;
-    }
+    },
   },
   pages: {
-    signIn: '/login', // Adjust this if your sign in page is different
-  }
+    signIn: "/login",
+  },
 };

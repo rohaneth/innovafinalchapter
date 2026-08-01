@@ -6,7 +6,12 @@ import { redirect } from "next/navigation";
 import { EmployeeDashboardView } from "@/components/dashboard/EmployeeDashboardView";
 
 export default async function EmployeeDashboard() {
-  const session = await getServerSession(authOptions);
+  let session;
+  try {
+    session = await getServerSession(authOptions);
+  } catch (error) {
+    redirect("/login");
+  }
 
   if (!session || !session.user || session.user.role !== "Employee") {
     redirect("/login");

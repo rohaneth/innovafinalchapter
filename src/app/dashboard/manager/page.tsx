@@ -6,7 +6,12 @@ import { redirect } from "next/navigation";
 import { ManagerDashboardView } from "@/components/dashboard/ManagerDashboardView";
 
 export default async function ManagerDashboard() {
-  const session = await getServerSession(authOptions);
+  let session;
+  try {
+    session = await getServerSession(authOptions);
+  } catch (error) {
+    redirect("/login");
+  }
 
   if (!session || !session.user || session.user.role !== "Manager") {
     redirect("/login");
