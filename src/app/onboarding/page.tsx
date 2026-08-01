@@ -29,7 +29,7 @@ export default function OnboardingPage() {
         </div>
 
         <Button style={{ marginTop: '8px' }}>
-          <Link href="/dashboard/employee" style={{ color: 'inherit', textDecoration: 'none', display: 'block', width: '100%' }}>
+          <Link href="/dashboard" style={{ color: 'inherit', textDecoration: 'none', display: 'block', width: '100%' }}>
             Complete Setup
           </Link>
         </Button>

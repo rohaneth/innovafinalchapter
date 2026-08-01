@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { signOut } from "next-auth/react";
 
 interface HeaderProps {
   employeeName?: string;
@@ -34,30 +35,40 @@ export function Header({
     >
       {/* Brand & Context */}
       <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-        <div
+        <a
+          href="/dashboard"
           style={{
-            width: "32px",
-            height: "32px",
-            borderRadius: "8px",
-            background: "linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))",
+            textDecoration: "none",
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
-            fontWeight: "bold",
-            fontSize: "14px",
-            color: "#fff",
+            gap: "12px",
           }}
         >
-          360
-        </div>
-        <div>
-          <h1 style={{ fontSize: "16px", fontWeight: "600", margin: 0, color: "var(--text-primary)" }}>
-            Bias-Aware 360° Review Workspace
-          </h1>
-          <p style={{ fontSize: "12px", color: "var(--text-muted)", margin: 0 }}>
-            Employee: <span style={{ color: "var(--text-primary)", fontWeight: "500" }}>{employeeName}</span> ({reviewPeriod})
-          </p>
-        </div>
+          <div
+            style={{
+              width: "32px",
+              height: "32px",
+              borderRadius: "8px",
+              background: "linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontWeight: "bold",
+              fontSize: "14px",
+              color: "#fff",
+            }}
+          >
+            360
+          </div>
+          <div>
+            <h1 style={{ fontSize: "16px", fontWeight: "600", margin: 0, color: "var(--text-primary)" }}>
+              Bias-Aware 360° Review Workspace
+            </h1>
+            <p style={{ fontSize: "12px", color: "var(--text-muted)", margin: 0 }}>
+              Employee: <span style={{ color: "var(--text-primary)", fontWeight: "500" }}>{employeeName}</span> ({reviewPeriod})
+            </p>
+          </div>
+        </a>
       </div>
 
       {/* Role & Actions */}
@@ -87,6 +98,14 @@ export function Header({
             {isGenerating ? "Synthesizing AI Review..." : "Re-run AI Synthesis"}
           </button>
         )}
+
+        <button
+          onClick={() => signOut({ callbackUrl: "/login" })}
+          className="btn-outline"
+          style={{ fontSize: "12px", padding: "6px 12px" }}
+        >
+          Sign Out
+        </button>
       </div>
     </header>
   );

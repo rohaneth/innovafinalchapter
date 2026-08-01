@@ -1,107 +1,175 @@
-'use client';
+"use client";
 
-import React from 'react';
-import Link from 'next/link';
-import { TopNav } from '@/components/layout/TopNav';
-import { Card } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
+import React, { useState, useEffect } from "react";
+import { Header } from "@/components/Header";
+import { LeftSidebar } from "@/components/LeftSidebar";
+import { CenterCanvas } from "@/components/CenterCanvas";
+import { RightInspector, AuditLogItem } from "@/components/RightInspector";
+import {
+  AuditFlag,
+  EvidenceChunk,
+  RawFeedbackInput,
+  SynthesizedReview,
+} from "@/types/agents";
+import { MOCK_FEEDBACK_DATASET } from "@/lib/agents/collector";
+import Link from "next/link";
 
 export default function WorkspacePage({ params }: { params: { employeeId: string } }) {
+  const employeeId = params.employeeId || "emp-001";
+  const [reviewPeriod] = useState("2026-H1");
+  const [rawInputs, setRawInputs] = useState<RawFeedbackInput[]>(MOCK_FEEDBACK_DATASET);
+  const [draftReview, setDraftReview] = useState<SynthesizedReview | null>(null);
+  const [auditFlags, setAuditFlags] = useState<AuditFlag[]>([]);
+  const [evidenceChunks, setEvidenceChunks] = useState<EvidenceChunk[]>([]);
+  const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
+  const [selectedCitationId, setSelectedCitationId] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const [isEditMode, setIsEditMode] = useState<boolean>(false);
+  const [isApproved, setIsApproved] = useState<boolean>(false);
+
+  const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([
+    {
+      id: "log-001",
+      timestamp: new Date().toISOString(),
+      actor: "System",
+      action: "Review Cycle Initialized",
+      details: `360° review cycle 2026-H1 created for employee ${employeeId}.`,
+    },
+  ]);
+
+  const addAuditLog = (action: string, details: string) => {
+    setAuditLogs((prev) => [
+      {
+        id: `log-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        actor: "HR Reviewer (HITL)",
+        action,
+        details,
+      },
+      ...prev,
+    ]);
+  };
+
+  const handleTriggerSynthesis = async () => {
+    setIsGenerating(true);
+    addAuditLog("Agent Synthesis Triggered", "Dispatched state graph pipeline (Collector -> Retriever -> Synthesizer -> Auditor).");
+
+    try {
+      const res = await fetch("/api/review", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ employeeId, reviewPeriod, rawInputs }),
+      });
+      const json = await res.json();
+
+      if (json.success && json.data) {
+        setDraftReview(json.data.draftReview);
+        setAuditFlags(json.data.auditFlags);
+        setEvidenceChunks(json.data.evidenceChunks);
+        addAuditLog("Synthesis Completed", `Generated ${json.data.draftReview?.strengths.length} strengths and ${json.data.auditFlags.length} audit flags.`);
+      } else {
+        throw new Error(json.error || "Failed API response");
+      }
+    } catch {
+      const { runReviewGraph } = await import("@/lib/agents/graph");
+      const state = await runReviewGraph(employeeId, reviewPeriod, rawInputs);
+      setDraftReview(state.draftReview);
+      setAuditFlags(state.auditFlags);
+      setEvidenceChunks(state.evidenceChunks);
+      addAuditLog("Synthesis Completed (Local Fallback)", `Generated report draft with ${state.auditFlags.length} audit flags.`);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  useEffect(() => {
+    handleTriggerSynthesis();
+  }, [employeeId]);
+
+  const handleDismissFlag = (flagId: string) => {
+    const flag = auditFlags.find((f) => f.id === flagId);
+    setAuditFlags((prev) => prev.filter((f) => f.id !== flagId));
+    if (flag) {
+      addAuditLog("Bias Flag Dismissed", `Dismissed ${flag.biasType} flag on section ${flag.targetSection}.`);
+    }
+  };
+
+  const handleApplySuggestedRevision = (flag: AuditFlag) => {
+    if (!draftReview) return;
+    if (flag.targetSection.includes("growth")) {
+      const updatedGrowth = draftReview.growthAreas.map((g) => {
+        if (g.summary.toLowerCase().includes("aggressive") || g.summary.toLowerCase().includes("communication")) {
+          return { ...g, summary: flag.suggestedRevision };
+        }
+        return g;
+      });
+      setDraftReview({ ...draftReview, growthAreas: updatedGrowth });
+    } else if (flag.targetSection.includes("strength")) {
+      const updatedStrengths = draftReview.strengths.map((s, idx) => {
+        if (idx === 0) return { ...s, summary: flag.suggestedRevision };
+        return s;
+      });
+      setDraftReview({ ...draftReview, strengths: updatedStrengths });
+    }
+    handleDismissFlag(flag.id);
+    addAuditLog("Suggested Revision Applied", `Updated claim text in ${flag.targetSection} based on auditor suggestion.`);
+  };
+
+  const handleApproveRelease = () => {
+    setIsApproved(true);
+    addAuditLog("Review Approved & Released", "Final Human-in-the-Loop approval granted. Review report released to employee.");
+  };
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: 'var(--bg-base)' }}>
-      <TopNav title="Review Workspace" />
-      
-      <div style={{ padding: '16px 32px', borderBottom: '1px solid var(--border-default)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <Link href="/dashboard/manager" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>&larr; Back to Dashboard</Link>
-          <span style={{ color: 'var(--text-muted)' }}>/</span>
-          <span style={{ fontWeight: 'bold' }}>Employee {params.employeeId}</span>
-          <Badge status="processing">Draft In Progress</Badge>
-        </div>
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <Button variant="outline">Save Draft</Button>
-          <Button variant="success">Approve Review</Button>
-        </div>
+    <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: "var(--bg-base)" }}>
+      {/* Top Banner Navigation */}
+      <div style={{ padding: "8px 24px", background: "var(--bg-surface)", borderBottom: "1px solid var(--border-default)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <Link href="/dashboard/manager" style={{ color: "var(--accent-primary)", textDecoration: "none", fontSize: "13px", fontWeight: "600" }}>
+          &larr; Back to Manager Dashboard
+        </Link>
+        <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+          Editing Workspace for Employee: <strong style={{ color: "var(--text-primary)" }}>{employeeId}</strong>
+        </span>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '250px 1fr 300px', flex: 1, overflow: 'hidden' }}>
-        {/* Left Panel */}
-        <div style={{ borderRight: '1px solid var(--border-default)', padding: '24px', overflowY: 'auto' }}>
-          <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '16px' }}>Profile Context</h3>
-          
-          <Card style={{ marginBottom: '16px', padding: '16px' }}>
-            <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>Alex Johnson</div>
-            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Software Engineer</div>
-          </Card>
+      <Header
+        employeeName={employeeId}
+        reviewPeriod={reviewPeriod}
+        isApproved={isApproved}
+        onTriggerAgent={handleTriggerSynthesis}
+        isGenerating={isGenerating}
+      />
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div>
-              <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '8px' }}>Goals</div>
-              <ul style={{ fontSize: '14px', color: 'var(--text-primary)', paddingLeft: '20px' }}>
-                <li>Deliver API v2</li>
-                <li>Mentor junior devs</li>
-              </ul>
-            </div>
-            <div>
-              <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '8px' }}>Recent Feedback</div>
-              <p style={{ fontSize: '14px', color: 'var(--text-primary)', backgroundColor: 'var(--bg-surface)', padding: '12px', borderRadius: '6px' }}>
-                "Great collaboration on the billing migration."
-              </p>
-            </div>
-          </div>
-        </div>
+      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+        <LeftSidebar
+          employeeId={employeeId}
+          rawInputs={rawInputs}
+          selectedSourceId={selectedSourceId}
+          onSelectSource={(sourceId) => setSelectedSourceId(sourceId)}
+        />
 
-        {/* Center Panel */}
-        <div style={{ padding: '32px 48px', overflowY: 'auto', backgroundColor: '#0F0C1B' }}>
-          <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-            <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '24px' }}>Q3 Performance Review</h2>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-              <section>
-                <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '12px', color: 'var(--accent-primary)' }}>Strengths</h3>
-                <p style={{ lineHeight: '1.6', fontSize: '15px' }}>
-                  Alex has shown excellent collaboration <span style={{ color: 'var(--accent-primary)', cursor: 'pointer' }}>[1]</span> across multiple teams this quarter. 
-                  They demonstrated strong technical ownership <span style={{ color: 'var(--accent-primary)', cursor: 'pointer' }}>[2]</span> by leading the billing migration 
-                  and delivered the project successfully ahead of schedule <span style={{ backgroundColor: 'rgba(255, 91, 91, 0.2)', cursor: 'pointer' }}>[3]</span>.
-                </p>
-              </section>
+        <CenterCanvas
+          draftReview={draftReview}
+          onSelectCitation={(citeId) => setSelectedCitationId(citeId)}
+          onUpdateDraft={(updated) => {
+            setDraftReview(updated);
+            addAuditLog("Manual Override", "Modified synthesized performance report claims.");
+          }}
+          isEditMode={isEditMode}
+          onToggleEditMode={() => setIsEditMode(!isEditMode)}
+        />
 
-              <section>
-                <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '12px', color: 'var(--accent-primary)' }}>Growth Areas</h3>
-                <p style={{ lineHeight: '1.6', fontSize: '15px' }}>
-                  While technically strong, there are opportunities to improve documentation practices <span style={{ color: 'var(--accent-primary)', cursor: 'pointer' }}>[4]</span>.
-                </p>
-              </section>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Panel */}
-        <div style={{ borderLeft: '1px solid var(--border-default)', padding: '24px', overflowY: 'auto' }}>
-          <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '16px' }}>Bias Inspector</h3>
-          
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <Card style={{ padding: '16px', borderLeft: '4px solid var(--state-error)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontSize: '14px', fontWeight: 'bold' }}>Unsupported Claim</span>
-                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>[3]</span>
-              </div>
-              <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                The claim "delivered project successfully ahead of schedule" lacks concrete evidence in the provided notes.
-              </p>
-            </Card>
-
-            <Card style={{ padding: '16px', borderLeft: '4px solid var(--state-warning)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontSize: '14px', fontWeight: 'bold' }}>Recency Bias</span>
-              </div>
-              <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                90% of the feedback cited is from the last 3 weeks of the quarter.
-              </p>
-            </Card>
-          </div>
-        </div>
+        <RightInspector
+          auditFlags={auditFlags}
+          evidenceChunks={evidenceChunks}
+          selectedCitationId={selectedCitationId}
+          onCloseCitation={() => setSelectedCitationId(null)}
+          auditLogs={auditLogs}
+          onDismissFlag={handleDismissFlag}
+          onApplySuggestedRevision={handleApplySuggestedRevision}
+          onApproveRelease={handleApproveRelease}
+          isApproved={isApproved}
+        />
       </div>
     </div>
   );
