@@ -21,6 +21,40 @@ async function main() {
     },
   });
 
+  // 1b. Create Default Projects
+  const project1 = await prisma.project.upsert({
+    where: { id: "proj-001" },
+    update: { name: "AI Performance Engine 2.0", description: "Core vector search & review bias detection" },
+    create: {
+      id: "proj-001",
+      name: "AI Performance Engine 2.0",
+      description: "Core vector search & review bias detection",
+      companyId: company.id,
+    },
+  });
+
+  const project2 = await prisma.project.upsert({
+    where: { id: "proj-002" },
+    update: { name: "Enterprise Security & Compliance", description: "Audit trail logging & RBAC security" },
+    create: {
+      id: "proj-002",
+      name: "Enterprise Security & Compliance",
+      description: "Audit trail logging & RBAC security",
+      companyId: company.id,
+    },
+  });
+
+  const project3 = await prisma.project.upsert({
+    where: { id: "proj-003" },
+    update: { name: "Customer Portal Redesign", description: "Modern UI/UX workspace refresh" },
+    create: {
+      id: "proj-003",
+      name: "Customer Portal Redesign",
+      description: "Modern UI/UX workspace refresh",
+      companyId: company.id,
+    },
+  });
+
   const passwordHash = await bcrypt.hash("password123", 10);
 
   // 2. Create Manager
@@ -71,7 +105,11 @@ async function main() {
         title: "Optimize pgvector retrieval latency under 100ms",
         description: "Implement automated indexing scripts to reduce query response time.",
         status: "In Progress",
+        priority: "High",
+        deadline: "2026-08-30",
+        successCriteria: "95th percentile query latency < 100ms on benchmark datasets.",
         progress: 65,
+        projectId: project1.id,
         assigneeId: employee1.id,
         managerId: manager.id,
       },
@@ -80,7 +118,11 @@ async function main() {
         title: "Mentor junior team members on system design",
         description: "Lead pair programming sessions for cross-team alignment.",
         status: "Completed",
+        priority: "Medium",
+        deadline: "2026-07-15",
+        successCriteria: "Complete 4 weekly mentorship sessions and publish internal guide.",
         progress: 100,
+        projectId: project3.id,
         assigneeId: employee1.id,
         managerId: manager.id,
       },
@@ -89,7 +131,11 @@ async function main() {
         title: "Build automated test suite for API endpoints",
         description: "Achieve 85%+ unit test coverage for submission and goal routes.",
         status: "In Progress",
+        priority: "Urgent",
+        deadline: "2026-08-15",
+        successCriteria: "All core API routes covered with passing GitHub Action checks.",
         progress: 40,
+        projectId: project2.id,
         assigneeId: employee2.id,
         managerId: manager.id,
       },

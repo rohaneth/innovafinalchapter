@@ -7,7 +7,7 @@ import { logAction } from "@/lib/audit";
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user) {
-    return new Response("Unauthorized", { status: 401 });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const { searchParams } = new URL(req.url);
@@ -16,7 +16,6 @@ export async function GET(req: Request) {
   try {
     let goals;
     if (session.user.role === "Manager") {
-      // Manager can fetch their own goals or goals of their assigned employees
       goals = await prisma.goal.findMany({
         where: {
           OR: [
@@ -24,56 +23,107 @@ export async function GET(req: Request) {
             { assigneeId: userId || session.user.id }
           ]
         },
-        include: { assignee: { select: { email: true } } }
+        include: {
+          assignee: { select: { id: true, email: true } },
+          project: { select: { id: true, name: true } },
+        },
+        orderBy: { createdAt: "desc" },
       });
     } else {
-      // Employees can only fetch their own goals
       goals = await prisma.goal.findMany({
-        where: { assigneeId: session.user.id }
+        where: { assigneeId: session.user.id },
+        include: {
+          project: { select: { id: true, name: true } },
+        },
+        orderBy: { createdAt: "desc" },
       });
     }
-    return new Response(JSON.stringify(goals), { status: 200 });
+    return NextResponse.json(goals, { status: 200 });
   } catch (error) {
-    return new Response("Error fetching goals", { status: 500 });
+    return NextResponse.json({ error: "Error fetching goals" }, { status: 500 });
   }
 }
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user || session.user.role !== "Manager") {
-    return new Response("Unauthorized", { status: 401 });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    const { title, description, assigneeEmail } = await req.json();
+    const {
+      title,
+      description,
+      assigneeEmails, // Array of string emails or single comma-separated string
+      projectId,
+      priority = "Medium",
+      deadline,
+      status = "Not Started",
+      successCriteria,
+    } = await req.json();
 
-    // Find assignee by email
-    const assignee = await prisma.user.findUnique({
-      where: { email: assigneeEmail }
-    });
-
-    if (!assignee) {
-      return new Response("Assignee not found", { status: 404 });
+    if (!title || !title.trim()) {
+      return NextResponse.json({ error: "Goal title is required" }, { status: 400 });
     }
 
-    if (assignee.companyId !== session.user.companyId) {
-       return new Response("Assignee is not in your company", { status: 403 });
+    // Normalize email array
+    let emails: string[] = [];
+    if (Array.isArray(assigneeEmails)) {
+      emails = assigneeEmails.map((e: string) => e.trim().toLowerCase()).filter(Boolean);
+    } else if (typeof assigneeEmails === "string" && assigneeEmails.trim()) {
+      emails = assigneeEmails.split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
     }
 
-    const goal = await prisma.goal.create({
-      data: {
-        title,
-        description,
-        status: "Not Started",
-        assigneeId: assignee.id,
-        managerId: session.user.id
-      }
+    if (emails.length === 0) {
+      return NextResponse.json({ error: "At least one assignee email is required" }, { status: 400 });
+    }
+
+    // Resolve assignees from database
+    const assignees = await prisma.user.findMany({
+      where: {
+        email: { in: emails },
+        companyId: session.user.companyId,
+      },
     });
 
-    await logAction("CREATE", session.user.id, "Goal", goal.id, { title });
+    if (assignees.length === 0) {
+      return NextResponse.json({ error: "No valid assignees found in your company" }, { status: 404 });
+    }
 
-    return new Response(JSON.stringify(goal), { status: 201 });
-  } catch (error) {
-    return new Response("Error creating goal", { status: 500 });
+    // Create goal for each selected employee
+    const createdGoals = await Promise.all(
+      assignees.map(async (assignee) => {
+        const goal = await prisma.goal.create({
+          data: {
+            title: title.trim(),
+            description: description?.trim() || null,
+            status,
+            priority,
+            deadline: deadline || null,
+            successCriteria: successCriteria?.trim() || null,
+            projectId: projectId || null,
+            assigneeId: assignee.id,
+            managerId: session.user.id,
+          },
+          include: {
+            assignee: { select: { id: true, email: true } },
+            project: { select: { id: true, name: true } },
+          },
+        });
+
+        await logAction("CREATE", session.user.id, "Goal", goal.id, {
+          title: goal.title,
+          assigneeEmail: assignee.email,
+          projectId,
+        });
+
+        return goal;
+      })
+    );
+
+    return NextResponse.json(createdGoals, { status: 201 });
+  } catch (error: any) {
+    console.error("Goal creation error:", error);
+    return NextResponse.json({ error: error?.message || "Error creating goal" }, { status: 500 });
   }
 }

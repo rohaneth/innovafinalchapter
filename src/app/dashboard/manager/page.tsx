@@ -24,7 +24,11 @@ export default async function ManagerDashboard() {
       role: "Employee",
     },
     include: {
-      assignedGoals: true,
+      assignedGoals: {
+        include: {
+          project: true,
+        },
+      },
     },
   });
 

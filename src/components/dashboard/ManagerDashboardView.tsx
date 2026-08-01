@@ -12,11 +12,20 @@ import { UpdateGoalProgressModal } from "@/components/modals/UpdateGoalProgressM
 import { AuditLogsModal } from "@/components/modals/AuditLogsModal";
 import { useRouter } from "next/navigation";
 
+interface Project {
+  id: string;
+  name: string;
+}
+
 interface Goal {
   id: string;
   title: string;
   progress: number;
   status: string;
+  priority?: string;
+  deadline?: string | null;
+  successCriteria?: string | null;
+  project?: Project | null;
 }
 
 interface Employee {
@@ -41,6 +50,32 @@ export function ManagerDashboardView({ employees }: ManagerDashboardViewProps) {
     router.refresh();
   };
 
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "Completed":
+        return <Badge status="approved">🟢 Completed</Badge>;
+      case "In Progress":
+        return <Badge status="processing">🔵 In Progress</Badge>;
+      case "On Hold":
+        return <Badge status="warning">🟡 On Hold</Badge>;
+      default:
+        return <Badge status="draft">⚪ Not Started</Badge>;
+    }
+  };
+
+  const getPriorityBadgeStyle = (priority?: string) => {
+    switch (priority) {
+      case "Urgent":
+        return { background: "rgba(244, 63, 94, 0.15)", color: "#f43f5e", border: "1px solid #f43f5e" };
+      case "High":
+        return { background: "rgba(245, 158, 11, 0.15)", color: "#f59e0b", border: "1px solid #f59e0b" };
+      case "Low":
+        return { background: "rgba(16, 185, 129, 0.15)", color: "#10b981", border: "1px solid #10b981" };
+      default:
+        return { background: "rgba(59, 130, 246, 0.15)", color: "#3b82f6", border: "1px solid #3b82f6" };
+    }
+  };
+
   const totalEmployees = employees.length;
   const tableData = employees.map((emp) => {
     const totalGoals = emp.assignedGoals.length;
@@ -55,28 +90,87 @@ export function ManagerDashboardView({ employees }: ManagerDashboardViewProps) {
         <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>Employee</span>
       </div>,
 
-      <div key={`goals-${emp.id}`} style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+      <div key={`goals-${emp.id}`} style={{ display: "flex", flexDirection: "column", gap: "10px", width: "100%", minWidth: "260px" }}>
         {emp.assignedGoals.length === 0 ? (
-          <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>No goals</span>
+          <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>No goals assigned</span>
         ) : (
-          emp.assignedGoals.map((g) => (
-            <button
-              key={g.id}
-              onClick={() => setSelectedGoal(g)}
-              style={{
-                background: "var(--bg-base)",
-                border: "1px solid var(--border-default)",
-                borderRadius: "4px",
-                padding: "2px 6px",
-                fontSize: "11px",
-                textAlign: "left",
-                color: "var(--text-primary)",
-                cursor: "pointer",
-              }}
-            >
-              {g.title} ({g.progress}%)
-            </button>
-          ))
+          emp.assignedGoals.map((g) => {
+            const priorityStyle = getPriorityBadgeStyle(g.priority);
+            return (
+              <div
+                key={g.id}
+                onClick={() => setSelectedGoal(g)}
+                style={{
+                  background: "var(--bg-base)",
+                  border: "1px solid var(--border-default)",
+                  borderRadius: "6px",
+                  padding: "8px 12px",
+                  fontSize: "12px",
+                  color: "var(--text-primary)",
+                  cursor: "pointer",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "6px",
+                  transition: "border-color 0.2s ease",
+                }}
+              >
+                {/* Project Tag & Priority */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span
+                    style={{
+                      fontSize: "11px",
+                      fontWeight: "600",
+                      color: "var(--accent-primary)",
+                      background: "rgba(224, 53, 162, 0.1)",
+                      padding: "2px 6px",
+                      borderRadius: "4px",
+                    }}
+                  >
+                    📁 {g.project?.name || "General Project"}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: "10px",
+                      fontWeight: "700",
+                      padding: "1px 6px",
+                      borderRadius: "4px",
+                      ...priorityStyle,
+                    }}
+                  >
+                    {g.priority || "Medium"}
+                  </span>
+                </div>
+
+                {/* Goal Title */}
+                <span style={{ fontWeight: "600" }}>{g.title}</span>
+
+                {/* Progress Bar & Status */}
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <div
+                    style={{
+                      flex: 1,
+                      height: "6px",
+                      background: "rgba(255,255,255,0.1)",
+                      borderRadius: "3px",
+                      overflow: "hidden",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: `${g.progress}%`,
+                        height: "100%",
+                        background: g.progress === 100 ? "var(--state-success)" : "var(--accent-primary)",
+                        transition: "width 0.3s ease",
+                      }}
+                    />
+                  </div>
+                  <span style={{ fontSize: "11px", fontWeight: "bold", minWidth: "32px", textAlign: "right" }}>
+                    {g.progress}%
+                  </span>
+                </div>
+              </div>
+            );
+          })
         )}
       </div>,
 
@@ -119,13 +213,6 @@ export function ManagerDashboardView({ employees }: ManagerDashboardViewProps) {
         >
           + Feedback
         </button>
-
-        <Link
-          href={`/workspace/${emp.id}`}
-          style={{ color: "var(--accent-secondary)", textDecoration: "none", fontSize: "12px", fontWeight: "600" }}
-        >
-          Review Workspace &rarr;
-        </Link>
       </div>,
     ];
   });
@@ -136,7 +223,7 @@ export function ManagerDashboardView({ employees }: ManagerDashboardViewProps) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>
           <h2 style={{ fontSize: "24px", fontWeight: "bold" }}>Company Manager Overview</h2>
-          <p style={{ color: "var(--text-muted)" }}>Assign goals, submit feedback, track completion, and view audit logs.</p>
+          <p style={{ color: "var(--text-muted)" }}>Assign goals to projects, track employee completion, submit feedback, and view audit logs.</p>
         </div>
         <div style={{ display: "flex", gap: "12px" }}>
           <Button variant="outline" onClick={() => setIsAuditLogsModalOpen(true)}>
@@ -220,6 +307,7 @@ export function ManagerDashboardView({ employees }: ManagerDashboardViewProps) {
       <GoalModal
         isOpen={isGoalModalOpen}
         defaultAssigneeEmail={defaultAssigneeEmail}
+        availableEmployees={employees.map((e) => ({ id: e.id, email: e.email }))}
         onClose={() => setIsGoalModalOpen(false)}
         onSuccess={refreshData}
       />
@@ -249,3 +337,4 @@ export function ManagerDashboardView({ employees }: ManagerDashboardViewProps) {
     </div>
   );
 }
+

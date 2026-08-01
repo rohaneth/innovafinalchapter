@@ -20,7 +20,11 @@ export default async function EmployeeDashboard() {
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     include: {
-      assignedGoals: true,
+      assignedGoals: {
+        include: {
+          project: true,
+        },
+      },
       submissions: {
         orderBy: { createdAt: "desc" },
         take: 10,
