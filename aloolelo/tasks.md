@@ -329,14 +329,15 @@ Every task should be mergeable with minimal manual conflict resolution.
 
 
 ## Unit 4: Human-in-the-Loop Review Dashboard
-- [ ] Build Next.js responsive layout with dark theme base (`#0b0914`, `#161224`). <!-- id: 15 -->
-- [ ] Construct the 3-column Split View dashboard layout:
+- [x] Build Next.js responsive layout with dark theme base (`#0b0914`, `#161224`). <!-- id: 15 -->
+- [x] Construct the 3-column Split View dashboard layout:
   - Left Sidebar: Employee metadata and status indicators. <!-- id: 16 -->
   - Center Canvas: Editable synthesized performance report. <!-- id: 17 -->
   - Right Inspector: Auditor bias alerts, missing voice notifications, and interactive citation inspector. <!-- id: 18 -->
-- [ ] Implement interactive editing and manual overrides with change tracking. <!-- id: 19 -->
-- [ ] Build the append-only audit trail logging system for tracking updates. <!-- id: 20 -->
-- [ ] Build approval and release gate mechanisms to finalize reviews. <!-- id: 21 -->
+- [x] Implement interactive editing and manual overrides with change tracking. <!-- id: 19 -->
+- [x] Build the append-only audit trail logging system for tracking updates. <!-- id: 20 -->
+- [x] Build approval and release gate mechanisms to finalize reviews. <!-- id: 21 -->
+
 
 ## Verification & Testing
 - [ ] Write unit tests for PII sanitization and vector search helper routines. <!-- id: 22 -->
