@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AuditFlag, EvidenceChunk } from "../types/agents";
 
 export interface AuditLogItem {
@@ -36,7 +36,14 @@ export function RightInspector({
 }: RightInspectorProps) {
   const [activeTab, setActiveTab] = useState<"auditor" | "citation" | "audit_trail">("auditor");
 
+  useEffect(() => {
+    if (selectedCitationId) {
+      setActiveTab("citation");
+    }
+  }, [selectedCitationId]);
+
   const selectedChunk = evidenceChunks.find((c) => c.id === selectedCitationId);
+
 
   return (
     <aside

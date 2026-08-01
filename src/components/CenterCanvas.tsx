@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { SynthesizedReview } from "../types/agents";
 
 interface CenterCanvasProps {
@@ -21,6 +21,11 @@ export function CenterCanvas({
   const [editedReview, setEditedReview] = useState<SynthesizedReview | null>(
     draftReview
   );
+
+  useEffect(() => {
+    setEditedReview(draftReview);
+  }, [draftReview]);
+
 
   if (!draftReview) {
     return (

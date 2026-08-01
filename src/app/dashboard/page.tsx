@@ -97,18 +97,25 @@ export default function DashboardPage() {
 
   const handleApplySuggestedRevision = (flag: AuditFlag) => {
     if (!draftReview) return;
-    if (flag.targetSection === "growthAreas") {
+    if (flag.targetSection.includes("growth")) {
       const updatedGrowth = draftReview.growthAreas.map((g) => {
-        if (g.summary.toLowerCase().includes("aggressive")) {
+        if (g.summary.toLowerCase().includes("aggressive") || g.summary.toLowerCase().includes("communication")) {
           return { ...g, summary: flag.suggestedRevision };
         }
         return g;
       });
       setDraftReview({ ...draftReview, growthAreas: updatedGrowth });
+    } else if (flag.targetSection.includes("strength")) {
+      const updatedStrengths = draftReview.strengths.map((s, idx) => {
+        if (idx === 0) return { ...s, summary: flag.suggestedRevision };
+        return s;
+      });
+      setDraftReview({ ...draftReview, strengths: updatedStrengths });
     }
     handleDismissFlag(flag.id);
     addAuditLog("Suggested Revision Applied", `Updated claim text in ${flag.targetSection} based on auditor suggestion.`);
   };
+
 
   const handleApproveRelease = () => {
     setIsApproved(true);
