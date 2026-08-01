@@ -320,12 +320,13 @@ Every task should be mergeable with minimal manual conflict resolution.
 - [ ] Build search retrieval service to fetch source-grounded evidence chunks. <!-- id: 8 -->
 
 ## Unit 3: Multi-Agent Synthesis & Bias Auditor
-- [ ] Define multi-agent state graph using LangGraph (Collector -> Retriever -> Synthesizer -> Auditor). <!-- id: 9 -->
-- [ ] Implement Collector node to aggregate all scoped inputs. <!-- id: 10 -->
-- [ ] Implement Retriever node to pull grounded evidence chunks from pgvector. <!-- id: 11 -->
-- [ ] Implement Synthesizer node to draft reviews (Strengths, Growth, Impact, Goals) with strict source citations. <!-- id: 12 -->
-- [ ] Implement Auditor node to flag recency bias, gender/personality bias, and missing perspective gaps. <!-- id: 13 -->
-- [ ] Store generated review drafts, audit flags, and execution metrics in PostgreSQL. <!-- id: 14 -->
+- [x] Define multi-agent state graph using LangGraph (Collector -> Retriever -> Synthesizer -> Auditor). <!-- id: 9 -->
+- [x] Implement Collector node to aggregate all scoped inputs. <!-- id: 10 -->
+- [x] Implement Retriever node to pull grounded evidence chunks from pgvector. <!-- id: 11 -->
+- [x] Implement Synthesizer node to draft reviews (Strengths, Growth, Impact, Goals) with strict source citations. <!-- id: 12 -->
+- [x] Implement Auditor node to flag recency bias, gender/personality bias, and missing perspective gaps. <!-- id: 13 -->
+- [x] Store generated review drafts, audit flags, and execution metrics in PostgreSQL. <!-- id: 14 -->
+
 
 ## Unit 4: Human-in-the-Loop Review Dashboard
 - [ ] Build Next.js responsive layout with dark theme base (`#0b0914`, `#161224`). <!-- id: 15 -->

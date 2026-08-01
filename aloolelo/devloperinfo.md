@@ -75,12 +75,13 @@ src/lib/retrieval/
 
 ### Tasks
 
-* [ ] Define LangGraph graph (id: 9)
-* [ ] Collector node (id: 10)
-* [ ] Retriever node (id: 11)
-* [ ] Synthesizer node (id: 12)
-* [ ] Auditor node (id: 13)
-* [ ] Store review drafts, audit flags, and metrics (id: 14)
+* [x] Define LangGraph graph (id: 9)
+* [x] Collector node (id: 10)
+* [x] Retriever node (id: 11)
+* [x] Synthesizer node (id: 12)
+* [x] Auditor node (id: 13)
+* [x] Store review drafts, audit flags, and metrics (id: 14)
+
 
 *Folders*
 

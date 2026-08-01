@@ -20,6 +20,14 @@
 
 - Core database schema definition in `prisma/schema.prisma` for User, Review, Feedback, AgentLog, and AuditTrail models.
 - PII sanitization and anonymization pipeline in `lib/privacy/anonymize.ts`.
+- **Unit 3: AI Review Engine (Developer 3)**:
+  - [x] Defined LangGraph state graph schema (`types/agents.ts`, `lib/agents/state.ts`, `lib/agents/graph.ts`).
+  - [x] Implemented Collector node with mock fallback support (`lib/agents/collector.ts`).
+  - [x] Implemented Retriever node for evidence chunk mapping (`lib/agents/retriever.ts`).
+  - [x] Implemented Synthesizer node with citation generation (`lib/agents/synthesizer.ts`).
+  - [x] Implemented Auditor node for bias & gap detection (`lib/agents/auditor.ts`).
+  - [x] Created unified API route handler (`app/api/review/route.ts`).
+
 
 ## Next Up
 
