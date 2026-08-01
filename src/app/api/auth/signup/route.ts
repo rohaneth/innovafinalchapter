@@ -1,51 +1,77 @@
-import { NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
-import prisma from '@/lib/db';
+import { NextResponse } from "next/server";
+import prisma from "@/lib/db";
+import bcrypt from "bcryptjs";
 
 export async function POST(req: Request) {
   try {
     const { email, password, role, companyName } = await req.json();
 
-    if (!email || !password || !role || !companyName) {
-      return NextResponse.json({ message: 'Missing fields' }, { status: 400 });
+    if (!email || !password || !role) {
+      return NextResponse.json(
+        { error: "Email, password, and role are required." },
+        { status: 400 }
+      );
     }
 
-    // Check if user exists
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // Check if user already exists
     const existingUser = await prisma.user.findUnique({
-      where: { email },
+      where: { email: normalizedEmail },
     });
 
     if (existingUser) {
-      return NextResponse.json({ message: 'User already exists' }, { status: 400 });
+      return NextResponse.json(
+        { error: "An account with this email address already exists." },
+        { status: 400 }
+      );
     }
 
-    // Hash password
+    // Hash password securely with bcrypt
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Find or create company
+    // Get or create company
+    const compName = companyName?.trim() || "Innova Tech Inc.";
     let company = await prisma.company.findFirst({
-      where: { name: companyName }
+      where: { name: compName },
     });
 
     if (!company) {
       company = await prisma.company.create({
-        data: { name: companyName }
+        data: { name: compName },
       });
     }
 
-    // Create user
+    // Format role ("Manager" | "Employee")
+    const formattedRole = role.toLowerCase() === "manager" ? "Manager" : "Employee";
+
+    // Create user in SQLite database
     const user = await prisma.user.create({
       data: {
-        email,
+        email: normalizedEmail,
         passwordHash,
-        role,
-        companyId: company.id
-      }
+        role: formattedRole,
+        companyId: company.id,
+      },
     });
 
-    return NextResponse.json({ message: 'User created successfully', userId: user.id }, { status: 201 });
-  } catch (error) {
+    return NextResponse.json(
+      {
+        success: true,
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          companyId: user.companyId,
+        },
+      },
+      { status: 201 }
+    );
+  } catch (error: any) {
     console.error("Signup error:", error);
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: error.message || "Failed to create account" },
+      { status: 500 }
+    );
   }
 }
