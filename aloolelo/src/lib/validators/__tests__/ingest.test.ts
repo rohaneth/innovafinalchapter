@@ -1,6 +1,6 @@
-import { ingestSchema } from '../ingest';
+import { feedbackSchema } from '../ingest';
 
-describe('ingestSchema validation', () => {
+describe('feedbackSchema validation', () => {
   it('should validate a valid payload', () => {
     const validPayload = {
       sourceUserId: 'user_123',
@@ -8,7 +8,7 @@ describe('ingestSchema validation', () => {
       content: 'Great work on the dashboard.',
     };
 
-    const result = ingestSchema.safeParse(validPayload);
+    const result = feedbackSchema.safeParse(validPayload);
     expect(result.success).toBe(true);
   });
 
@@ -18,7 +18,7 @@ describe('ingestSchema validation', () => {
       content: 'Great work on the dashboard.',
     };
 
-    const result = ingestSchema.safeParse(invalidPayload);
+    const result = feedbackSchema.safeParse(invalidPayload);
     expect(result.success).toBe(false);
   });
 
@@ -28,7 +28,7 @@ describe('ingestSchema validation', () => {
       targetUserId: 'user_456',
     };
 
-    const result = ingestSchema.safeParse(invalidPayload);
+    const result = feedbackSchema.safeParse(invalidPayload);
     expect(result.success).toBe(false);
   });
 });
