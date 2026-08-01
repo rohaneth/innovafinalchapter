@@ -1,0 +1,91 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Company {
+  id    String @id @default(cuid())
+  name  String
+  users User[]
+}
+
+model User {
+  id           String @id @default(cuid())
+  email        String @unique
+  passwordHash String
+  role         String // "Employee" or "Manager"
+  
+  companyId    String
+  company      Company @relation(fields: [companyId], references: [id])
+
+  assignedGoals   Goal[] @relation("GoalAssignee")
+  managedGoals    Goal[] @relation("GoalManager")
+
+  submissions     Submission[]
+  
+  receivedFeedback Feedback[] @relation("FeedbackTarget")
+  givenFeedback    Feedback[] @relation("FeedbackAuthor")
+
+  auditLogs        AuditLog[]
+}
+
+model Goal {
+  id          String @id @default(cuid())
+  title       String
+  description String?
+  status      String // "Not Started", "In Progress", "Completed"
+  progress    Int    @default(0)
+
+  assigneeId  String
+  assignee    User @relation("GoalAssignee", fields: [assigneeId], references: [id])
+
+  managerId   String
+  manager     User @relation("GoalManager", fields: [managerId], references: [id])
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Submission {
+  id        String @id @default(cuid())
+  type      String // "SelfAssessment", "ProjectOutcome", "MeetingNote", "Achievement"
+  content   String
+  
+  userId    String
+  user      User @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+model Feedback {
+  id           String @id @default(cuid())
+  type         String // "Manager", "Peer", "Additional"
+  content      String
+
+  targetUserId String
+  targetUser   User @relation("FeedbackTarget", fields: [targetUserId], references: [id])
+
+  authorId     String
+  author       User @relation("FeedbackAuthor", fields: [authorId], references: [id])
+
+  createdAt    DateTime @default(now())
+}
+
+model AuditLog {
+  id         String @id @default(cuid())
+  action     String // "CREATE", "UPDATE", "DELETE", "LOGIN"
+  entityType String? // "Goal", "Submission", "Feedback"
+  entityId   String?
+  metadata   String? // JSON string
+  
+  userId     String
+  user       User @relation(fields: [userId], references: [id])
+
+  timestamp  DateTime @default(now())
+}

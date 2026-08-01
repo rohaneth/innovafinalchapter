@@ -4,43 +4,47 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Table } from '@/components/ui/Table';
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import prisma from "@/lib/db";
+import { redirect } from 'next/navigation';
 
-export default function ManagerDashboard() {
-  const tableData = [
-    [
-      <div key="1" style={{ display: 'flex', flexDirection: 'column' }}>
-        <span style={{ fontWeight: 'bold' }}>Alex Johnson</span>
-        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Software Engineer</span>
+export default async function ManagerDashboard() {
+  const session = await getServerSession(authOptions);
+  
+  if (!session || !session.user || session.user.role !== "Manager") {
+    redirect('/login');
+  }
+
+  // Fetch employees in the manager's company
+  const employees = await prisma.user.findMany({
+    where: { 
+      companyId: session.user.companyId,
+      role: 'Employee'
+    },
+    include: {
+      assignedGoals: true
+    }
+  });
+
+  const tableData = employees.map(emp => {
+    const totalGoals = emp.assignedGoals.length;
+    const avgProgress = totalGoals > 0 
+      ? emp.assignedGoals.reduce((acc, curr) => acc + curr.progress, 0) / totalGoals 
+      : 0;
+
+    return [
+      <div key={emp.id} style={{ display: 'flex', flexDirection: 'column' }}>
+        <span style={{ fontWeight: 'bold' }}>{emp.email}</span>
+        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Employee</span>
       </div>,
-      'Engineering',
-      <Badge key="1" status="processing">AI Processing</Badge>,
-      '75%',
-      <span key="1" style={{ color: 'var(--state-warning)' }}>Medium (3)</span>,
-      <Link key="1" href="/workspace/1" style={{ color: 'var(--accent-primary)', textDecoration: 'none' }}>Open Workspace &rarr;</Link>
-    ],
-    [
-      <div key="2" style={{ display: 'flex', flexDirection: 'column' }}>
-        <span style={{ fontWeight: 'bold' }}>Samantha Lee</span>
-        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Product Designer</span>
-      </div>,
-      'Design',
-      <Badge key="2" status="draft">Draft</Badge>,
-      '40%',
-      <span key="2" style={{ color: 'var(--state-success)' }}>Low (0)</span>,
-      <Link key="2" href="/workspace/2" style={{ color: 'var(--accent-primary)', textDecoration: 'none' }}>Open Workspace &rarr;</Link>
-    ],
-    [
-      <div key="3" style={{ display: 'flex', flexDirection: 'column' }}>
-        <span style={{ fontWeight: 'bold' }}>Marcus Reed</span>
-        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Sales Executive</span>
-      </div>,
-      'Sales',
-      <Badge key="3" status="approved">Approved</Badge>,
-      '100%',
-      <span key="3" style={{ color: 'var(--state-success)' }}>Low (0)</span>,
-      <Link key="3" href="/workspace/3" style={{ color: 'var(--accent-primary)', textDecoration: 'none' }}>Open Workspace &rarr;</Link>
-    ]
-  ];
+      'Engineering', // Mock department for now
+      <Badge key={`badge-${emp.id}`} status="processing">In Progress</Badge>,
+      `${Math.round(avgProgress)}%`,
+      <span key={`score-${emp.id}`} style={{ color: 'var(--state-success)' }}>Low (0)</span>,
+      <Link key={`link-${emp.id}`} href={`/workspace/${emp.id}`} style={{ color: 'var(--accent-primary)', textDecoration: 'none' }}>Open Workspace &rarr;</Link>
+    ];
+  });
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -59,19 +63,24 @@ export default function ManagerDashboard() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px' }}>
         <Card>
           <div style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '8px' }}>Total Employees</div>
-          <div style={{ fontSize: '24px', fontWeight: 'bold' }}>24</div>
+          <div style={{ fontSize: '24px', fontWeight: 'bold' }}>{employees.length}</div>
         </Card>
         <Card>
           <div style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '8px' }}>Reviews Pending</div>
-          <div style={{ fontSize: '24px', fontWeight: 'bold' }}>8</div>
+          <div style={{ fontSize: '24px', fontWeight: 'bold' }}>{employees.length}</div>
         </Card>
         <Card>
           <div style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '8px' }}>Avg Completion</div>
-          <div style={{ fontSize: '24px', fontWeight: 'bold' }}>65%</div>
+          <div style={{ fontSize: '24px', fontWeight: 'bold' }}>
+            {Math.round(employees.reduce((acc, emp) => {
+               const goals = emp.assignedGoals.length;
+               return acc + (goals > 0 ? emp.assignedGoals.reduce((a, c) => a + c.progress, 0) / goals : 0);
+            }, 0) / (employees.length || 1))}%
+          </div>
         </Card>
         <Card>
           <div style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '8px' }}>Total Bias Alerts</div>
-          <div style={{ fontSize: '24px', fontWeight: 'bold', color: 'var(--state-warning)' }}>12</div>
+          <div style={{ fontSize: '24px', fontWeight: 'bold', color: 'var(--state-success)' }}>0</div>
         </Card>
       </div>
 
@@ -96,7 +105,7 @@ export default function ManagerDashboard() {
         </div>
         
         <Table 
-          headers={['Employee Name', 'Department', 'Review Status', 'Completion %', 'Bias Score', 'Action']} 
+          headers={['Employee Email', 'Department', 'Review Status', 'Avg Goal Progress', 'Bias Score', 'Action']} 
           data={tableData} 
         />
       </Card>
