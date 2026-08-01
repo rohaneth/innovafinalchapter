@@ -299,3 +299,44 @@ Minimize overlap.
 Maximize independence.
 
 Every task should be mergeable with minimal manual conflict resolution.
+
+---
+
+# Tasks Checklist
+
+## Foundational Setup
+- [ ] Initialize Prisma schema with `User`, `Review`, `Feedback`, `AgentLog`, and `AuditTrail` models. <!-- id: 0 -->
+- [ ] Implement core PII sanitization and anonymization utility in `lib/privacy/anonymize.ts`. <!-- id: 1 -->
+- [ ] Configure database connection and generate Prisma Client. <!-- id: 2 -->
+
+## Unit 1: Data Ingestion & PII Scrubbing
+- [ ] Create API route to ingest self-assessments, peer/manager feedback, and meeting transcripts. <!-- id: 3 -->
+- [ ] Integrate PII scrubbing pipeline prior to database persistence. <!-- id: 4 -->
+- [ ] Implement validation rules using Zod for incoming payloads. <!-- id: 5 -->
+
+## Unit 2: Vector Embedding & Evidence Retrieval
+- [ ] Configure `pgvector` database extension and schema for storing text chunks and embeddings. <!-- id: 6 -->
+- [ ] Implement utility to generate embeddings for feedback and meeting notes. <!-- id: 7 -->
+- [ ] Build search retrieval service to fetch source-grounded evidence chunks. <!-- id: 8 -->
+
+## Unit 3: Multi-Agent Synthesis & Bias Auditor
+- [ ] Define multi-agent state graph using LangGraph (Collector -> Retriever -> Synthesizer -> Auditor). <!-- id: 9 -->
+- [ ] Implement Collector node to aggregate all scoped inputs. <!-- id: 10 -->
+- [ ] Implement Retriever node to pull grounded evidence chunks from pgvector. <!-- id: 11 -->
+- [ ] Implement Synthesizer node to draft reviews (Strengths, Growth, Impact, Goals) with strict source citations. <!-- id: 12 -->
+- [ ] Implement Auditor node to flag recency bias, gender/personality bias, and missing perspective gaps. <!-- id: 13 -->
+- [ ] Store generated review drafts, audit flags, and execution metrics in PostgreSQL. <!-- id: 14 -->
+
+## Unit 4: Human-in-the-Loop Review Dashboard
+- [ ] Build Next.js responsive layout with dark theme base (`#0b0914`, `#161224`). <!-- id: 15 -->
+- [ ] Construct the 3-column Split View dashboard layout:
+  - Left Sidebar: Employee metadata and status indicators. <!-- id: 16 -->
+  - Center Canvas: Editable synthesized performance report. <!-- id: 17 -->
+  - Right Inspector: Auditor bias alerts, missing voice notifications, and interactive citation inspector. <!-- id: 18 -->
+- [ ] Implement interactive editing and manual overrides with change tracking. <!-- id: 19 -->
+- [ ] Build the append-only audit trail logging system for tracking updates. <!-- id: 20 -->
+- [ ] Build approval and release gate mechanisms to finalize reviews. <!-- id: 21 -->
+
+## Verification & Testing
+- [ ] Write unit tests for PII sanitization and vector search helper routines. <!-- id: 22 -->
+- [ ] Perform manual end-to-end verification of the ingestion-agent-review flow. <!-- id: 23 -->
