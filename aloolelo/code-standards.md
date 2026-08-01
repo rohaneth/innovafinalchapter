@@ -1,53 +1,53 @@
-# Code Standards
+ Code Standards (`code-standards.md`)
 
 ## General
 
-- [Principle — e.g. Keep modules small and single-purpose]
-- [Principle — e.g. Fix root causes, do not layer workarounds]
-- [Principle — e.g. Do not mix unrelated concerns in one
-  component or route]
+- **Single Responsibility**: Keep modules, agent nodes, and utility functions small, focused, and single-purpose.
+- **Root Cause Resolution**: Address the underlying logic or schema issue when bugs arise—never stack workarounds or bypass validation steps.
+- **Separation of Concerns**: Keep agent orchestration, data access, privacy/sanitization logic, and UI components isolated in their respective system boundaries.
 
 ## TypeScript
 
-- [Rule — e.g. Strict mode is required throughout the project]
-- [Rule — e.g. Avoid any — use explicit interfaces or narrowly
-  scoped types]
-- [Rule — e.g. Validate unknown external input at system
-  boundaries before trusting it]
+- **Strict Type Checking**: Strict mode is required across the entire codebase (`strict: true`).
+- **No `any`**: Avoid `any` under all circumstances. Use explicit interfaces, generic parameters, or `unknown` with type guards.
+- **Boundary Validation**: Validate all external inputs (e.g., feedback submissions, raw meeting notes, LLM outputs) at system boundaries using **Zod** schema validation before processing.
 
-## [Framework — e.g. Next.js]
+## Next.js (App Router)
 
-- [Convention — e.g. Default to server components]
-- [Convention — e.g. Add use client only when browser
-  interactivity requires it]
-- [Convention — e.g. Keep route handlers focused on a
-  single responsibility]
+- **Server-First Components**: Default to React Server Components (RSC) for data fetching and report rendering.
+- **Explicit Client Boundaries**: Use `'use client'` only when browser interactivity or client state (e.g., HITL interactive report editors, filter controls) requires it.
+- **Focused Route Handlers**: Keep route handlers light—delegate multi-agent execution, PII scrubbing, and database operations to shared library modules.
 
 ## Styling
 
-- [Rule — e.g. Use CSS custom property tokens — no
-  hardcoded hex values]
-- [Rule — e.g. Follow the border radius scale defined
-  in ui-context.md]
+- **Design System Tokens**: Use CSS custom properties and Tailwind utility classes—never hardcode hex values or arbitrary unit values in components.
+- **Layout Consistency**: Ensure all UI views follow consistent spacing, typography, and border radius tokens defined in `components/ui/`.
 
-## API Routes
+## API Routes & Agents
 
-- [Rule — e.g. Validate and parse request input before
-  any logic runs]
-- [Rule — e.g. Enforce auth and ownership before any mutation]
-- [Rule — e.g. Return consistent, predictable response shapes]
+- **Input & Role Validation**: Validate request payloads and verify user credentials/RBAC permissions (via Clerk) before executing any workflow or database operation.
+- **Structured LLM Outputs**: Enforce strict JSON schema responses (e.g., via `zodToJsonSchema`) for all agent prompts to guarantee deterministic structures for claims, citations, and bias flags.
+- **Consistent API Responses**: Standardize JSON response shapes across all endpoints:
+  ```json
+  {
+    "success": true,
+    "data": { ... },
+    "error": null
+  }
+  ```
 
-## Data and Storage
+## Data, Privacy, and Audit
 
-- [Rule — e.g. Metadata belongs in the database]
-- [Rule — e.g. Large generated content belongs in file
-  or blob storage]
-- [Rule — e.g. Do not store large content directly in
-  the database]
+- **Structured Metadata in Database**: Store user records, review metadata, audit trail events, and citations directly in PostgreSQL via Prisma.
+- **Unstructured Evidence Vectorization**: Store text chunks and vector embeddings of meeting notes and feedback in `pgvector` for retrieval.
+- **PII Scrubbing Prior to LLM Calls**: All raw text inputs must pass through `lib/privacy/anonymize.ts` before being dispatched to agent models.
 
 ## File Organization
 
-- `[folder]/` — [What belongs here]
-- `[folder]/` — [What belongs here]
-- `[folder]/` — [What belongs here]
-- `[folder]/` — [What belongs here]s
+- `app/` — Next.js App Router routes, API endpoints, and server actions.
+- `components/` — Feature components (e.g., `HITLApprovalPanel`, `BiasFlagList`, `EvidenceViewer`).
+- `components/ui/` — Base UI component primitives built with Tailwind and shadcn/ui (**Protected File Scope**).
+- `lib/agents/` — Multi-agent state graph, agent node definitions (Collector, Retriever, Synthesizer, Auditor), and prompt templates.
+- `lib/privacy/` — PII redaction, data hashing, and encryption utilities.
+- `lib/db/` — Prisma client instantiations, queries, and vector database operations.
+- `types/` — Shared TypeScript interfaces, domain entities, and agent schema definitions.

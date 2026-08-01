@@ -2,58 +2,75 @@
 
 ## Theme
 
-[Describe the overall visual language — e.g. Dark only.
-No light mode. The design language is a dark technical
-workspace — near-black backgrounds, layered surfaces,
-and vivid accent colors for interactive elements.]
+Dark mode first. The design language is a sleek, dark technical workspace—near-black layered background surfaces, crisp border dividers, subtle glassmorphism overlay effects, and vibrant magenta/pink accent highlights for primary AI interactions, evaluation metrics, and bias alerts.
+
+---
 
 ## Colors
 
-[Define your color tokens as CSS custom properties.
-All components must use these tokens — no hardcoded
-hex values.]
+All components must strictly use these CSS variable tokens—no hardcoded hex values in component inline styles or Tailwind classes.
 
-| Role            | CSS Variable       | Value    |
-| --------------- | ------------------ | -------- |
-| Page background | `--bg-base`        | `#[hex]` |
-| Surface         | `--bg-surface`     | `#[hex]` |
-| Primary text    | `--text-primary`   | `#[hex]` |
-| Muted text      | `--text-muted`     | `#[hex]` |
-| Primary accent  | `--accent-primary` | `#[hex]` |
-| Border          | `--border-default` | `#[hex]` |
-| Error           | `--state-error`    | `#[hex]` |
-| Success         | `--state-success`  | `#[hex]` |
+| Role | CSS Variable | Value | Description |
+| :--- | :--- | :--- | :--- |
+| **Page background** | `--bg-base` | `#0b0914` | Deep black-purple foundation |
+| **Surface** | `--bg-surface` | `#161224` | Layered cards & container panels |
+| **Surface elevated** | `--bg-surface-hover` | `#221c38` | Hover states & selected list items |
+| **Primary text** | `--text-primary` | `#f5f3f9` | High-contrast body text |
+| **Muted text** | `--text-muted` | `#9d95b2` | Subtitles, timestamps, metadata |
+| **Primary accent** | `--accent-primary` | `#e035a2` | Vivid pink/magenta buttons & highlights |
+| **Accent glow** | `--accent-glow` | `#e035a233` | Focus rings & subtle radial gradients |
+| **Secondary accent** | `--accent-secondary` | `#8b5cf6` | Agent indicator badges & subtle accents |
+| **Border default** | `--border-default` | `#2d2447` | Structural grid lines & separators |
+| **Border bright** | `--border-active` | `#584485` | Active inputs & highlighted cards |
+| **Error / Bias alert** | `--state-error` | `#f43f5e` | Severe bias warnings & missing evidence flags |
+| **Warning / Gap alert** | `--state-warning` | `#f59e0b` | Imbalance alerts & pending approvals |
+| **Success / Approved** | `--state-success` | `#10b981` | HITL approval state & verified claims |
+
+---
 
 ## Typography
 
-| Role      | Font              | Variable      |
-| --------- | ----------------- | ------------- |
-| UI text   | [e.g. Geist Sans] | `--font-sans` |
-| Code/mono | [e.g. Geist Mono] | `--font-mono` |
+| Role | Font | Variable | Tailwind Usage |
+| :--- | :--- | :--- | :--- |
+| **UI Text** | Inter / Geist Sans | `--font-sans` | `font-sans` |
+| **Code / Citations** | JetBrains Mono / Geist Mono | `--font-mono` | `font-mono` |
+
+---
 
 ## Border Radius
 
-| Context           | Class            |
-| ----------------- | ---------------- |
-| Inline / small UI | `rounded-[size]` |
-| Cards / panels    | `rounded-[size]` |
-| Modals / overlays | `rounded-[size]` |
+| Context | Class | Usage |
+| :--- | :--- | :--- |
+| **Inline / Small UI** | `rounded-md` | Badges, buttons, input fields |
+| **Cards / Panels** | `rounded-xl` | Metric summary cards, feedback lists |
+| **Modals / Overlays** | `rounded-2xl` | HITL approval drawer, detail viewers |
+
+---
 
 ## Component Library
 
-[e.g. shadcn/ui on top of Tailwind. Components live
-in components/ui/. Use the CLI to add new components
-rather than writing from scratch.]
+- **Base Library**: `shadcn/ui` built on top of Tailwind CSS.
+- **Location**: Components reside in `components/ui/` (**Protected File Scope**).
+- **Workflow**: Add components via `npx shadcn@latest add [component]` rather than writing custom primitives from scratch.
+
+---
 
 ## Layout Patterns
 
-- [Pattern — e.g. Editor: full-viewport split with
-  left sidebar, center canvas, right sidebar]
-- [Pattern — e.g. Sidebars: fixed width with border separator]
-- [Pattern — e.g. Modals: centered overlay with backdrop blur]
-- [Pattern — e.g. Navbar: top bar with bottom border]
+- **Dashboard & Reviewer Workspace**: 3-column split view:
+  - *Left Sidebar*: Review metadata, employee profile, data source status.
+  - *Center Canvas*: Synthesized performance report (editable in HITL mode).
+  - *Right Inspector*: Agent Auditor bias flags, missing voice warnings, and interactive citation inspector.
+- **Header / Navigation**: Fixed top navigation bar with border separator (`--border-default`) displaying active review cycle state and RBAC controls.
+- **Modals & Drawers**: Centered overlays with backdrop blur (`backdrop-blur-md bg-black/60`) for human overrides and source detail deep dives.
+- **Status Cards**: Elevated surface cards (`--bg-surface`) featuring left border accents indicating status (e.g., green for grounded, magenta for review needed, red for bias alert).
+
+---
 
 ## Icons
 
-[e.g. Lucide React. Stroke-based icons only. Sizes:
-h-4 w-4 for inline, h-5 w-5 for buttons.]
+- **Library**: `lucide-react` (stroke-based icons only).
+- **Sizing Standard**:
+  - `h-4 w-4`: Inline text icons, badges, table status indicators.
+  - `h-5 w-5`: Interactive buttons, form inputs, drawer toggles.
+  - `h-6 w-6`: Section header icons, hero metrics.
