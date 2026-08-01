@@ -69,6 +69,15 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
   },
+  logger: {
+    error(code, metadata) {
+      if (code === "JWT_SESSION_ERROR") {
+        // Suppress console error overlays for stale/invalid browser cookies
+        return;
+      }
+      console.error(code, metadata);
+    },
+  },
   pages: {
     signIn: "/login",
   },
