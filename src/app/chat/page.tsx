@@ -88,7 +88,8 @@ export default function ChatPage() {
 
   return (
     <div className="flex flex-col h-screen bg-[#212121] text-[#ececec] font-sans selection:bg-[#4f4f4f] overflow-hidden">
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         .custom-scrollbar::-webkit-scrollbar { width: 8px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #424242; border-radius: 4px; }

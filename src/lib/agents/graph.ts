@@ -25,18 +25,22 @@ export async function runReviewGraph(
     // Step 1: Collector Node
     const collectorPatch = await collectorNode(currentState);
     currentState = { ...currentState, ...collectorPatch };
+    if (currentState.status === "failed") return currentState;
 
     // Step 2: Retriever Node
     const retrieverPatch = await retrieverNode(currentState);
     currentState = { ...currentState, ...retrieverPatch };
+    if (currentState.status === "failed") return currentState;
 
     // Step 3: Synthesizer Node
     const synthesizerPatch = await synthesizerNode(currentState);
     currentState = { ...currentState, ...synthesizerPatch };
+    if (currentState.status === "failed") return currentState;
 
     // Step 4: Auditor Node
     const auditorPatch = await auditorNode(currentState);
     currentState = { ...currentState, ...auditorPatch };
+    if (currentState.status === "failed") return currentState;
 
     return currentState;
   } catch (err: unknown) {

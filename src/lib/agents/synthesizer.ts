@@ -39,7 +39,8 @@ Rules:
 1. ONLY use the supplied evidence. Do NOT invent or hallucinate any information.
 2. If evidence is missing for a section, state that there is insufficient evidence.
 3. You must provide clear explainability by including a 'reason' and 'citations' for each item. 'citations' must ONLY contain IDs of the provided evidence.
-4. Output must match the JSON schema strictly.`;
+4. Output must match the JSON schema strictly.
+5. If a generated claim or statement is unsupported by the provided evidence, you must mark it with low confidence in your summary text and ensure the overall confidence score is adjusted downwards. NEVER generate completely unsupported claims as facts.`;
 
   const userPrompt = `
 Generate a performance review for Employee ID: ${state.employeeId || "unknown"} 

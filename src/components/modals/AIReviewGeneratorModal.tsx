@@ -76,18 +76,17 @@ export function AIReviewGeneratorModal({
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/review", {
+      const res = await fetch("/api/reviews/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ employeeId }),
       });
 
-      const json = await res.json();
-      if (!res.ok || json.error) {
-        throw new Error(json.error || "Failed to generate AI review");
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        throw new Error(data.error || "Failed to generate AI review");
       }
       
-      const data = json.data;
       populateForm(data);
     } catch (err: any) {
       setError(err.message || "An error occurred during generation");
