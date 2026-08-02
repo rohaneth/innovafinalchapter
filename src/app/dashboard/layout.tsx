@@ -26,6 +26,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (pathname.includes('/manager/goals')) return 'Goal Management';
     if (pathname.includes('/manager/workspace')) return 'Review Workspace';
     if (pathname.includes('/manager/analytics')) return 'Performance Analytics';
+    if (pathname.includes('/manager/github-analytics')) return 'GitHub Analytics';
     if (pathname.includes('/manager/fairness')) return 'Fairness Analytics';
     if (pathname.includes('/manager/schedule')) return 'Review Schedule';
     if (pathname.includes('/manager/audit-logs')) return 'Audit Logs';

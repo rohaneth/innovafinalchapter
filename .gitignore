@@ -2,7 +2,7 @@
 node_modules/
 .next/
 *.tsbuildinfo
-package-lock.json
+
 .env
 
 
