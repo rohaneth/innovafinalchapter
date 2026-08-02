@@ -28,6 +28,7 @@ export function Sidebar({ role, activePath = "/dashboard" }: SidebarProps) {
     { name: "🎯 Goal Management", path: "/dashboard/manager/goals" },
     { name: "📝 Review Workspace", path: "/dashboard/manager/workspace" },
     { name: "📊 Performance Analytics", path: "/dashboard/manager/analytics" },
+    { name: "🐙 GitHub Analytics", path: "/dashboard/manager/github-analytics" },
     { name: "⚖️ Fairness Analytics", path: "/dashboard/manager/fairness" },
     { name: "📅 Review Schedule", path: "/dashboard/manager/schedule" },
     { name: "📜 Audit Logs", path: "/dashboard/manager/audit-logs" },
