@@ -2,9 +2,11 @@ import {
   ReviewGraphState,
   SynthesizedReview,
 } from "../../types/agents";
+import { invokeGroq } from "../llm/groq";
 
 /**
  * Synthesizer Node: Generates structured performance report draft
+ * Using Grok LLM for generation.
  * (Strengths, Growth Areas, Impact Highlights, Goal Progress)
  * with strict source citations pointing to EvidenceChunk IDs.
  */
@@ -13,80 +15,75 @@ export async function synthesizerNode(
 ): Promise<Partial<ReviewGraphState>> {
   const chunks = state.evidenceChunks || [];
 
-  // Map chunk IDs by category
-  const technicalChunks = chunks.filter((c) => c.tags.includes("technical"));
-  const collabChunks = chunks.filter(
-    (c) => c.tags.includes("collaboration") || c.tags.includes("leadership")
-  );
-  const interpersonalChunks = chunks.filter((c) =>
-    c.tags.includes("interpersonal")
-  );
-  const goalChunks = chunks.filter((c) => c.tags.includes("goals"));
+  // If no chunks are available
+  if (chunks.length === 0) {
+    return {
+      currentNode: "synthesizer",
+      status: "failed",
+      error: "Insufficient evidence to generate a review."
+    };
+  }
 
-  const draft: SynthesizedReview = {
-    employeeId: state.employeeId || "emp-001",
-    period: state.reviewPeriod || "2026-H1",
-    strengths: [
-      {
-        summary:
-          "Demonstrated exceptional technical leadership by leading the database migration to pgvector and optimizing search performance by 35%.",
-        citations: technicalChunks.map((c) => c.id),
-      },
-      {
-        summary:
-          "Highly collaborative team member, consistently available for pair programming and clarifying API specifications.",
-        citations: collabChunks.map((c) => c.id),
-      },
-    ],
-    growthAreas: [
-      {
-        summary:
-          "Improve communication approach during technical code reviews to avoid perceived aggressiveness when presenting architectural feedback.",
-        citations: interpersonalChunks.map((c) => c.id),
-      },
-      {
-        summary:
-          "Enhance cross-team coordination during sprint releases to streamline delivery pipelines.",
-        citations: chunks
-          .filter((c) => c.authorRole === "employee")
-          .map((c) => c.id),
-      },
-    ],
-    impactHighlights: [
-      {
-        summary:
-          "Resolved 24 high-priority technical debt issues and established team CI/CD standards.",
-        citations: chunks
-          .filter((c) => c.sourceType === "meeting_transcript")
-          .map((c) => c.id),
-      },
-    ],
-    goalProgress: [
-      {
-        goal: "Optimize semantic retrieval speed to under 100ms",
-        status: "exceeded",
-        summary:
-          "Successfully implemented pgvector automated indexing, reducing query latency by 35%.",
-        citations: technicalChunks.map((c) => c.id),
-      },
-      {
-        goal: "Mentor junior team members on system design",
-        status: "achieved",
-        summary:
-          "Provided pairing support and led architectural discussions across multiple projects.",
-        citations: collabChunks.map((c) => c.id),
-      },
-    ],
-    overallSummary:
-      "Strong performance throughout 2026-H1 marked by high technical impact, successful vector database delivery, and active peer support. Main development area is refining code review communication style.",
-  };
+  // Prepare prompt payload mapping chunks
+  const evidencePayload = chunks.map(c => ({
+    id: c.id,
+    type: c.sourceType,
+    role: c.authorRole,
+    content: c.content,
+    tags: c.tags
+  }));
+
+  const systemPrompt = `You are an expert HR Manager AI.
+Your task is to synthesize performance review evidence into a structured JSON report.
+Rules:
+1. ONLY use the supplied evidence. Do NOT invent or hallucinate any information.
+2. If evidence is missing for a section, state that there is insufficient evidence.
+3. You must provide clear explainability by including a 'reason' and 'citations' for each item. 'citations' must ONLY contain IDs of the provided evidence.
+4. Output must match the JSON schema strictly.`;
+
+  const userPrompt = `
+Generate a performance review for Employee ID: ${state.employeeId || "unknown"} 
+Review Period: ${state.reviewPeriod || "unknown"}
+
+Provided Evidence (JSON):
+${JSON.stringify(evidencePayload, null, 2)}
+
+Required JSON Structure:
+{
+  "employeeId": "string",
+  "period": "string",
+  "strengths": [{ "summary": "...", "reason": "...", "citations": ["chunk_id1"] }],
+  "growthAreas": [{ "summary": "...", "reason": "...", "citations": ["chunk_id2"] }],
+  "impactHighlights": [{ "summary": "...", "reason": "...", "citations": ["chunk_id1"] }],
+  "goalProgress": [{ "goal": "...", "status": "exceeded|achieved|in_progress|needs_attention", "summary": "...", "reason": "...", "citations": ["chunk_id3"] }],
+  "overallSummary": "...",
+  "confidence": {
+    "overallConfidence": 80,
+    "evidenceStrength": "Weak" | "Moderate" | "Strong",
+    "evidenceCount": 5,
+    "missingEvidenceCount": 1
+  }
+}
+`;
+
+  let draft: SynthesizedReview;
+  try {
+    const rawResponse = await invokeGroq(systemPrompt, userPrompt, true);
+    draft = rawResponse as SynthesizedReview;
+    } catch (err: any) {
+    return {
+      currentNode: "synthesizer",
+      status: "failed",
+      error: `Groq Synthesis failed: ${err.message}`
+    };
+  }
 
   // Calculate total citations count across sections
   let citationCount = 0;
-  draft.strengths.forEach((s) => (citationCount += s.citations.length));
-  draft.growthAreas.forEach((g) => (citationCount += g.citations.length));
-  draft.impactHighlights.forEach((i) => (citationCount += i.citations.length));
-  draft.goalProgress.forEach((gp) => (citationCount += gp.citations.length));
+  draft.strengths?.forEach((s) => (citationCount += s.citations?.length || 0));
+  draft.growthAreas?.forEach((g) => (citationCount += g.citations?.length || 0));
+  draft.impactHighlights?.forEach((i) => (citationCount += i.citations?.length || 0));
+  draft.goalProgress?.forEach((gp) => (citationCount += gp.citations?.length || 0));
 
   return {
     draftReview: draft,

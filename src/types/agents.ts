@@ -50,6 +50,7 @@ export type EvidenceChunk = z.infer<typeof EvidenceChunkSchema>;
 
 export const ReviewSectionItemSchema = z.object({
   summary: z.string(),
+  reason: z.string().optional(),
   citations: z.array(z.string()).describe("IDs of EvidenceChunk sources backing this statement"),
 });
 export type ReviewSectionItem = z.infer<typeof ReviewSectionItemSchema>;
@@ -58,9 +59,18 @@ export const GoalProgressItemSchema = z.object({
   goal: z.string(),
   status: z.enum(["exceeded", "achieved", "in_progress", "needs_attention"]),
   summary: z.string(),
+  reason: z.string().optional(),
   citations: z.array(z.string()),
 });
 export type GoalProgressItem = z.infer<typeof GoalProgressItemSchema>;
+
+export const ConfidenceScoreSchema = z.object({
+  overallConfidence: z.number().min(0).max(100),
+  evidenceStrength: z.enum(["Weak", "Moderate", "Strong"]),
+  evidenceCount: z.number(),
+  missingEvidenceCount: z.number(),
+});
+export type ConfidenceScore = z.infer<typeof ConfidenceScoreSchema>;
 
 export const SynthesizedReviewSchema = z.object({
   employeeId: z.string(),
@@ -70,6 +80,7 @@ export const SynthesizedReviewSchema = z.object({
   impactHighlights: z.array(ReviewSectionItemSchema),
   goalProgress: z.array(GoalProgressItemSchema),
   overallSummary: z.string(),
+  confidence: ConfidenceScoreSchema.optional(),
 });
 export type SynthesizedReview = z.infer<typeof SynthesizedReviewSchema>;
 
@@ -82,6 +93,20 @@ export const BiasTypeSchema = z.enum([
   "gender_personality_bias",
   "ungrounded_claim",
   "missing_voice_gap",
+  "unsupported_claim",
+  "halo_effect",
+  "horn_effect",
+  "leniency_bias",
+  "severity_bias",
+  "central_tendency_bias",
+  "manager_dominance",
+  "missing_peer_feedback",
+  "missing_self_assessment",
+  "contradictory_feedback",
+  "subjective_language",
+  "stakeholder_imbalance",
+  "weak_evidence",
+  "evidence_scarcity"
 ]);
 export type BiasType = z.infer<typeof BiasTypeSchema>;
 
@@ -95,6 +120,7 @@ export const AuditFlagSchema = z.object({
   targetSection: z.string(),
   description: z.string(),
   evidenceIds: z.array(z.string()),
+  missingEvidence: z.string().optional(),
   suggestedRevision: z.string(),
 });
 export type AuditFlag = z.infer<typeof AuditFlagSchema>;

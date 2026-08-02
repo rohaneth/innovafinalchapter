@@ -1,4 +1,5 @@
 import { AuditFlag, ReviewGraphState } from "../../types/agents";
+import { invokeGroq } from "../llm/groq";
 
 /**
  * Auditor Node: Scans the draft review and evidence pool for bias, gaps, and ungrounded claims.
@@ -7,6 +8,7 @@ import { AuditFlag, ReviewGraphState } from "../../types/agents";
  * 2. Gender / Personality Bias
  * 3. Ungrounded Claims
  * 4. Missing Voice Gaps
+ * 5. LLM Validation (Groq) for Unsupported Claims, Contradictory Feedback, Stakeholder Imbalance, etc.
  */
 export async function auditorNode(
   state: ReviewGraphState
@@ -34,7 +36,7 @@ export async function auditorNode(
   }
 
   // 1. Check for Gender / Personality Bias
-  const growthText = draft.growthAreas.map((g) => g.summary).join(" ");
+  const growthText = draft.growthAreas?.map((g) => g.summary).join(" ") || "";
   if (
     growthText.toLowerCase().includes("aggressive") ||
     growthText.toLowerCase().includes("bossy") ||
@@ -62,11 +64,10 @@ export async function auditorNode(
     const oldest = Math.min(...timestamps);
     const totalSpanDays = (newest - oldest) / (1000 * 60 * 60 * 24);
 
-    // If span > 90 days, check if earlier period chunks were cited
     if (totalSpanDays > 90) {
       const citedIds = new Set<string>();
-      draft.strengths.forEach((s) => s.citations.forEach((c) => citedIds.add(c)));
-      draft.growthAreas.forEach((g) => g.citations.forEach((c) => citedIds.add(c)));
+      draft.strengths?.forEach((s) => s.citations?.forEach((c) => citedIds.add(c)));
+      draft.growthAreas?.forEach((g) => g.citations?.forEach((c) => citedIds.add(c)));
 
       const citedChunks = chunks.filter((c) => citedIds.has(c.id));
       const citedTimestamps = citedChunks.map((c) =>
@@ -88,7 +89,7 @@ export async function auditorNode(
               .filter((c) => new Date(c.timestamp).getTime() < avgCitedTime)
               .map((c) => c.id),
             suggestedRevision:
-              "Incorporate earlier H1 accomplishments (such as Q1 security overhaul pairing) into strengths.",
+              "Incorporate earlier accomplishments into strengths.",
           });
         }
       }
@@ -97,9 +98,9 @@ export async function auditorNode(
 
   // 3. Check for Ungrounded Claims (sections missing citations)
   const allSections = [
-    ...draft.strengths,
-    ...draft.growthAreas,
-    ...draft.impactHighlights,
+    ...(draft.strengths || []),
+    ...(draft.growthAreas || []),
+    ...(draft.impactHighlights || []),
   ];
   allSections.forEach((section, idx) => {
     if (!section.citations || section.citations.length === 0) {
@@ -127,6 +128,56 @@ export async function auditorNode(
       evidenceIds: [],
       suggestedRevision: "Request peer feedback input before finalizing report release.",
     });
+  }
+
+  // 5. LLM Validation (Groq)
+  try {
+    const evidencePayload = chunks.map(c => ({ id: c.id, content: c.content }));
+    const systemPrompt = `You are an expert HR Auditor AI. 
+Analyze the generated review against the provided evidence to detect advanced biases and unsupported claims.
+Only return an array of AuditFlag objects matching the JSON schema.
+Bias types allowed: unsupported_claim, halo_effect, horn_effect, leniency_bias, severity_bias, central_tendency_bias, manager_dominance, missing_peer_feedback, missing_self_assessment, contradictory_feedback, subjective_language, stakeholder_imbalance, weak_evidence, evidence_scarcity.`;
+
+    const userPrompt = `
+Generated Review:
+${JSON.stringify(draft, null, 2)}
+
+Provided Evidence:
+${JSON.stringify(evidencePayload, null, 2)}
+
+Return JSON array under key "flags":
+{
+  "flags": [
+    {
+      "id": "unique-id",
+      "biasType": "unsupported_claim",
+      "severity": "low|medium|high|critical",
+      "targetSection": "summary text",
+      "description": "reason for flag",
+      "evidenceIds": ["matched evidence ids"],
+      "missingEvidence": "description of what is missing",
+      "suggestedRevision": "revision text"
+    }
+  ]
+}
+`;
+    const groqResponse = await invokeGroq(systemPrompt, userPrompt, true);
+    if (groqResponse && Array.isArray(groqResponse.flags)) {
+      groqResponse.flags.forEach((f: any) => {
+        flags.push({
+          id: f.id || `flag-llm-${Math.random().toString(36).substring(7)}`,
+          biasType: f.biasType || "unsupported_claim",
+          severity: f.severity || "medium",
+          targetSection: f.targetSection || "unknown",
+          description: f.description || "LLM flagged an issue.",
+          evidenceIds: f.evidenceIds || [],
+          missingEvidence: f.missingEvidence,
+          suggestedRevision: f.suggestedRevision || "Review manually.",
+        });
+      });
+    }
+  } catch (err: any) {
+    console.error("Groq Auditor Failed:", err.message);
   }
 
   return {
