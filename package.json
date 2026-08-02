@@ -4,7 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "tsc --noEmit",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
     "test:agent": "npx tsx --env-file=.env src/lib/agents/__tests__/test-graph.ts"
   },
   "dependencies": {
