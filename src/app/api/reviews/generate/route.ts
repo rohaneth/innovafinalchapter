@@ -3,12 +3,34 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { logAction } from "@/lib/audit";
+import { runReviewGraph } from "@/lib/agents/graph";
+import { RawFeedbackInput } from "@/types/agents";
+
+const rateLimitMap = new Map<string, { count: number; lastReset: number }>();
+const RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
+const MAX_REQUESTS_PER_WINDOW = 5;
 
 // POST /api/reviews/generate
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user || session.user.role !== "Manager") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Rate Limiting Logic
+  const userId = session.user.id;
+  const now = Date.now();
+  let rateData = rateLimitMap.get(userId);
+
+  if (!rateData || now - rateData.lastReset > RATE_LIMIT_WINDOW_MS) {
+    rateData = { count: 1, lastReset: now };
+  } else {
+    rateData.count += 1;
+  }
+  rateLimitMap.set(userId, rateData);
+
+  if (rateData.count > MAX_REQUESTS_PER_WINDOW) {
+    return NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429 });
   }
 
   try {
@@ -32,10 +54,6 @@ export async function POST(req: Request) {
           include: { author: { select: { email: true, role: true } } },
           orderBy: { createdAt: "desc" },
         },
-        auditLogs: {
-          orderBy: { timestamp: "desc" },
-          take: 15,
-        },
       },
     });
 
@@ -43,193 +61,100 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Employee not found" }, { status: 404 });
     }
 
-    // 2. Synthesize Evidence
-    const goals = employee.assignedGoals || [];
-    const submissions = employee.submissions || [];
-    const feedbackList = employee.receivedFeedback || [];
+    // 2. Format raw data into RawFeedbackInput for the multi-agent graph
+    const rawInputs: RawFeedbackInput[] = [];
+    
+    for (const g of (employee.assignedGoals || [])) {
+      rawInputs.push({
+        id: g.id,
+        employeeId: employee.id,
+        authorId: "system",
+        authorRole: "system",
+        type: "project_goal",
+        content: `Goal: ${g.title}\nDescription: ${g.description}\nStatus: ${g.status}\nProgress: ${g.progress}%`,
+        timestamp: g.createdAt.toISOString(),
+        projectContext: g.project?.name
+      });
+    }
 
-    const totalGoals = goals.length;
-    const completedGoals = goals.filter((g) => g.status === "Completed").length;
-    const inProgressGoals = goals.filter((g) => g.status === "In Progress").length;
-    const overdueGoals = goals.filter((g) => {
-      if (!g.deadline || g.status === "Completed") return false;
-      return new Date(g.deadline).getTime() < Date.now();
-    }).length;
+    for (const s of (employee.submissions || [])) {
+      rawInputs.push({
+        id: s.id,
+        employeeId: employee.id,
+        authorId: employee.id,
+        authorRole: "employee",
+        type: "self",
+        content: s.content,
+        timestamp: s.createdAt.toISOString(),
+      });
+    }
 
-    const avgProgress = totalGoals > 0
-      ? Math.round(goals.reduce((acc, g) => acc + g.progress, 0) / totalGoals)
-      : 0;
+    for (const f of (employee.receivedFeedback || [])) {
+      rawInputs.push({
+        id: f.id,
+        employeeId: employee.id,
+        authorId: f.authorId,
+        authorRole: (f.author?.role?.toLowerCase() === "manager" ? "manager" : "peer") as any,
+        type: (f.type.toLowerCase() === "manager" ? "manager" : "peer") as any,
+        content: f.content,
+        timestamp: f.createdAt.toISOString(),
+      });
+    }
 
-    // Submissions breakdown
-    const selfAssessments = submissions.filter((s) => s.type === "SelfAssessment");
-    const achievements = submissions.filter((s) => s.type === "Achievement" || s.type === "ProjectOutcome");
+    // 3. Run the multi-agent graph with retry logic
+    let finalState;
+    let retries = 0;
+    while (retries < 2) {
+      try {
+        finalState = await runReviewGraph(employeeId, "2026-H1", rawInputs);
+        if (finalState.status === "completed" && finalState.draftReview) {
+          break;
+        }
+      } catch (e) {
+        console.warn(`Graph run failed on attempt ${retries + 1}`, e);
+      }
+      retries++;
+    }
 
-    // Feedback breakdown
-    const managerFeedback = feedbackList.filter((f) => f.type === "Manager" || f.author?.role === "Manager");
-    const peerFeedback = feedbackList.filter((f) => f.type === "Peer");
+    if (!finalState || finalState.status !== "completed" || !finalState.draftReview) {
+      return NextResponse.json({ error: "Failed to generate AI performance review through multi-agent pipeline" }, { status: 500 });
+    }
 
-    // Fairness score calculation
-    const quantitativeCount = selfAssessments.length + achievements.length;
-    const rawFairnessScore = Math.min(98, Math.max(82, 85 + (quantitativeCount > 0 ? 8 : 0) + (completedGoals > 0 ? 5 : 0)));
+    const { draftReview, evidenceChunks, auditFlags, metrics } = finalState;
 
-    // Determine Performance Rating based on evidence
+    // 4. Determine rating
     let rating = "Good";
-    if (avgProgress >= 85 && overdueGoals === 0 && (completedGoals > 0 || quantitativeCount >= 2)) {
-      rating = "Excellent";
-    } else if (avgProgress < 50 || overdueGoals > 1) {
-      rating = "Needs Improvement";
-    } else if (avgProgress >= 65) {
-      rating = "Good";
-    } else {
-      rating = "Satisfactory";
-    }
+    if (draftReview.overallSummary.toLowerCase().includes("exceed") || draftReview.overallSummary.toLowerCase().includes("excellent")) rating = "Excellent";
+    else if (draftReview.overallSummary.toLowerCase().includes("needs improvement") || draftReview.overallSummary.toLowerCase().includes("attention")) rating = "Needs Improvement";
+    else if (draftReview.overallSummary.toLowerCase().includes("satisfactory")) rating = "Satisfactory";
 
-    // 3. Generate Evidence-Based Structured Review Sections
-
-    // Section 1: Performance Summary
-    const performanceSummary = `Based on platform telemetry and ${totalGoals} assigned goals across projects, ${employee.email} demonstrates a ${avgProgress}% average goal completion rate with a ${rawFairnessScore}% AI Bias Awareness Score. The employee has logged ${submissions.length} self-reflections/achievements and received ${feedbackList.length} feedback entries to date.`;
-
-    // Section 2: Key Strengths
-    const strengthsList: string[] = [];
-    if (completedGoals > 0) {
-      strengthsList.push(`• Successfully completed ${completedGoals} key assigned goal(s) (${goals.filter(g => g.status === 'Completed').map(g => g.title).join(', ')}).`);
-    }
-    if (achievements.length > 0) {
-      strengthsList.push(`• Consistently logs verifiable achievements: "${achievements[0].content.slice(0, 100)}...".`);
-    }
-    if (selfAssessments.length > 0) {
-      strengthsList.push(`• Proactive self-reflection and ownership with ${selfAssessments.length} logged self-assessments.`);
-    }
-    if (strengthsList.length === 0) {
-      strengthsList.push(`• Active engagement in project goals with steady execution momentum (${avgProgress}% completion rate).`);
-    }
-    const keyStrengths = strengthsList.join("\n");
-
-    // Section 3: Areas for Improvement
-    const improvementList: string[] = [];
-    if (overdueGoals > 0) {
-      improvementList.push(`• Address ${overdueGoals} overdue task(s) to maintain milestone momentum.`);
-    }
-    if (inProgressGoals > 0) {
-      improvementList.push(`• Accelerate progress on ${inProgressGoals} pending goal(s) nearing deadline dates.`);
-    }
-    if (selfAssessments.length === 0) {
-      improvementList.push(`• Increase frequency of quantitative self-assessment notes to improve rating objectivity.`);
-    }
-    if (improvementList.length === 0) {
-      improvementList.push(`• Focus on scaling leadership impact and mentoring peers across upcoming project phases.`);
-    }
-    const areasForImprovement = improvementList.join("\n");
-
-    // Section 4: Goal Achievement
-    const goalAchievement = `Goal Breakdown: ${completedGoals} Completed, ${inProgressGoals} In Progress, ${overdueGoals} Overdue. Overall goal completion standing is at ${avgProgress}%. Primary project alignment: ${goals.map(g => g.project?.name || 'General').filter((v, i, a) => a.indexOf(v) === i).join(', ') || 'General'}.`;
-
-    // Section 5: Collaboration & Communication
-    const collabList: string[] = [];
-    if (peerFeedback.length > 0) {
-      collabList.push(`• Peer Feedback: "${peerFeedback[0].content.slice(0, 120)}..."`);
-    }
-    if (managerFeedback.length > 0) {
-      collabList.push(`• Manager Evaluation: "${managerFeedback[0].content.slice(0, 120)}..."`);
-    }
-    if (collabList.length === 0) {
-      collabList.push(`• Communication maintains steady alignment across assigned project tasks and manager updates.`);
-    }
-    const collaborationComm = collabList.join("\n");
-
-    // Section 6: AI Recommendations
-    const aiRecommendations = `1. Establish bi-weekly quantitative milestone check-ins for active goals.\n2. Leverage documented self-assessments to maintain the ${rawFairnessScore}% Bias Awareness score.\n3. Focus on clearing pending deliverables prior to the next quarterly review cycle.`;
-
-    // Section 7: Bias Detection Analysis
-    const detectedIssues: string[] = [];
-    const fairnessSuggestions: string[] = [];
-    let biasDeductions = 0;
-
-    // Check 1: Missing Evidence
-    if (submissions.length === 0) {
-      detectedIssues.push("Missing Self-Assessment Evidence: Review relies solely on manager/goal telemetry with 0 employee self-assessment inputs.");
-      fairnessSuggestions.push("Request self-assessment logs to ground ratings in employee-provided quantitative evidence.");
-      biasDeductions += 6;
-    }
-
-    // Check 2: Rating Imbalance
-    if (rating === "Needs Improvement" && completedGoals > 0 && avgProgress >= 60) {
-      detectedIssues.push("Rating Imbalance Detected: Assigned 'Needs Improvement' rating despite 60%+ goal progress and completed goals.");
-      fairnessSuggestions.push("Re-evaluate rating scale to align with empirical goal completion statistics.");
-      biasDeductions += 10;
-    } else if (rating === "Excellent" && (overdueGoals > 0 || avgProgress < 75)) {
-      detectedIssues.push("Rating Inflation Risk: 'Excellent' rating assigned while overdue goals or lower completion rates exist.");
-      fairnessSuggestions.push("Ensure top ratings are backed by zero overdue goals and high completion consistency.");
-      biasDeductions += 5;
-    }
-
-    // Check 3: Recency Bias
-    const recentSubmissionsCount = submissions.filter(
-      (s) => new Date(s.createdAt).getTime() > Date.now() - 14 * 24 * 60 * 60 * 1000
-    ).length;
-    if (submissions.length > 3 && recentSubmissionsCount === submissions.length) {
-      detectedIssues.push("Recency Bias Risk: All submission data originates from the last 14 days; earlier period contributions may be overlooked.");
-      fairnessSuggestions.push("Review complete evaluation window history rather than recent activity spikes.");
-      biasDeductions += 8;
-    }
-
-    // Check 4: Subjective Language Scrutiny
-    const subjectiveWords = ["always", "never", "attitude", "seems", "personality", "vibe", "lazy", "feel"];
-    const allText = `${managerFeedback.map(f => f.content).join(" ")} ${collaborationComm}`.toLowerCase();
-    const foundSubjective = subjectiveWords.filter((w) => allText.includes(w));
-    if (foundSubjective.length > 0) {
-      detectedIssues.push(`Overly Subjective Phrases: Found non-objective or subjective descriptors (${foundSubjective.map(w => `"${w}"`).join(", ")}).`);
-      fairnessSuggestions.push("Replace subjective adjectives with measurable outcome data and task deliverables.");
-      biasDeductions += 7;
-    }
-
-    if (detectedIssues.length === 0) {
-      detectedIssues.push("No significant bias patterns detected in current evidence set.");
-      fairnessSuggestions.push("Maintain current data-driven, evidence-based review practices.");
-    }
-
-    const calculatedBiasScore = Math.max(70, Math.min(99, rawFairnessScore - biasDeductions));
-
-    const biasDetection = {
-      score: calculatedBiasScore,
-      status: calculatedBiasScore >= 90 ? "Optimal Objectivity" : calculatedBiasScore >= 80 ? "Moderate Bias Risk" : "Attention Recommended",
-      issues: detectedIssues,
-      suggestions: fairnessSuggestions,
-    };
-
-    // Section 8: Evidence Used JSON
-    const evidenceUsed = {
-      totalGoals,
-      completedGoals,
-      overdueGoals,
-      avgProgress,
-      fairnessScore: rawFairnessScore,
-      submissionIds: submissions.map((s) => s.id),
-      feedbackIds: feedbackList.map((f) => f.id),
-      goalTitles: goals.map((g) => g.title),
-    };
-
+    // 5. Build ReviewDraft payload
     const reviewDraft = {
       employeeId,
       employeeEmail: employee.email,
       rating,
-      performanceSummary,
-      keyStrengths,
-      areasForImprovement,
-      goalAchievement,
-      collaborationComm,
-      aiRecommendations,
-      biasDetection,
-      evidenceUsed,
+      performanceSummary: draftReview.overallSummary,
+      keyStrengths: JSON.stringify(draftReview.strengths, null, 2),
+      areasForImprovement: JSON.stringify(draftReview.growthAreas, null, 2),
+      goalAchievement: JSON.stringify(draftReview.goalProgress, null, 2),
+      collaborationComm: JSON.stringify(draftReview.impactHighlights, null, 2),
+      aiRecommendations: JSON.stringify(auditFlags, null, 2),
+      
+      auditFlags,
+      evidenceChunks,
+      metrics,
+      draftReview,
+      evidenceUsed: evidenceChunks.map(c => c.id),
       status: "DRAFT",
     };
 
+    // 6. Log Audit Event
     await logAction(
       "CREATE",
       session.user.id,
       "AI_Review_Generation",
       employeeId,
-      { employeeId, rating, totalGoals, fairnessScore: rawFairnessScore }
+      { employeeId, rating, metrics }
     );
 
     return NextResponse.json(reviewDraft);

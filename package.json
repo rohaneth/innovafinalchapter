@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "tsc --noEmit",
-    "test:agent": "npx tsx src/lib/agents/__tests__/test-graph.ts"
+    "test:agent": "npx tsx --env-file=.env src/lib/agents/__tests__/test-graph.ts"
   },
   "dependencies": {
     "@libsql/client": "^0.17.4",

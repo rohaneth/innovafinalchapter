@@ -1,4 +1,5 @@
 import { RawFeedbackInput, ReviewGraphState } from "../../types/agents";
+import { sanitizeText } from "../sanitization";
 
 /**
  * Sample mock feedback dataset used for standalone execution
@@ -69,10 +70,16 @@ export const MOCK_FEEDBACK_DATASET: RawFeedbackInput[] = [
 export async function collectorNode(
   state: ReviewGraphState
 ): Promise<Partial<ReviewGraphState>> {
-  const inputs =
+  let inputs =
     state.rawInputs && state.rawInputs.length > 0
       ? state.rawInputs
       : MOCK_FEEDBACK_DATASET;
+
+  // Mask PII in feedback content
+  inputs = inputs.map(input => ({
+    ...input,
+    content: sanitizeText(input.content)
+  }));
 
   return {
     rawInputs: inputs,
