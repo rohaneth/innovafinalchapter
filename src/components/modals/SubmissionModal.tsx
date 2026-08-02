@@ -123,6 +123,7 @@ export function SubmissionModal({
               <option value="ProjectOutcome">📊 Project Outcome</option>
               <option value="MeetingNote">🎙️ Meeting Notes / Transcript</option>
               <option value="Achievement">🏆 Key Achievement</option>
+              <option value="JiraTicket">💥 Jira Ticket</option>
             </select>
           </div>
 
