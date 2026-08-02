@@ -15,9 +15,6 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN echo "Cache bust for dev.db"
-RUN ls -la /app
-RUN test -f /app/dev.db && echo "dev.db exists" || (echo "dev.db missing" && exit 1)
 
 
 # Generate Prisma Client
@@ -43,7 +40,7 @@ RUN adduser --system --uid 1001 nextjs
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
-COPY --from=builder --chown=nextjs:nodejs /app/dev.db ./dev.db
+
 
 # Set correct permission for db if sqlite is used
 RUN mkdir -p /app/data && chown nextjs:nodejs /app/data
