@@ -161,18 +161,33 @@ export class OrganizationKnowledgeService {
    * Universal search across normalized knowledge based on a query.
    * This is a simple implementation, but in production, we could integrate with pgvector or full-text search.
    */
-  static async searchKnowledge(query: string): Promise<KnowledgeItem[]> {
-    const q = query.toLowerCase();
-    
-    // For simplicity, we just fetch a subset of items and filter in memory, 
-    // or run basic LIKE queries on multiple tables.
-    
+  static async searchKnowledge(query: string, companyId?: string): Promise<KnowledgeItem[]> {
     const knowledge: KnowledgeItem[] = [];
+
+    // Always include top-level company info for broad questions
+    const companies = await prisma.company.findMany({
+      where: companyId ? { id: companyId } : undefined,
+      include: {
+        projects: true,
+        users: { select: { id: true, email: true, role: true } },
+      }
+    });
+
+    for (const company of companies) {
+      knowledge.push({
+        id: company.id,
+        type: "company",
+        title: company.name,
+        content: `Company ${company.name} with ${company.users.length} users and ${company.projects.length} projects.\nUsers: ${company.users.map(u => u.email).join(", ")}\nProjects: ${company.projects.map(p => p.name).join(", ")}`,
+        metadata: { userCount: company.users.length, projectCount: company.projects.length },
+        timestamp: new Date().toISOString()
+      });
+    }
 
     // Search users
     const users = await prisma.user.findMany({
-      where: { email: { contains: q } },
-      take: 5
+      where: companyId ? { companyId } : undefined,
+      take: 50
     });
     for (const u of users) {
       knowledge.push({
@@ -182,23 +197,44 @@ export class OrganizationKnowledgeService {
 
     // Search goals
     const goals = await prisma.goal.findMany({
-      where: { OR: [{ title: { contains: q } }, { description: { contains: q } }] },
-      take: 10
+      where: companyId ? { project: { companyId } } : undefined,
+      include: {
+        assignee: { select: { email: true, role: true } },
+        project: { select: { name: true } }
+      },
+      take: 50
     });
     for (const g of goals) {
+      const projectName = g.project ? g.project.name : "No Project";
+      const assigneeEmail = g.assignee ? g.assignee.email : "Unassigned";
+      
       knowledge.push({
-        id: g.id, type: "goal", title: g.title, content: g.description || "", metadata: { status: g.status }, timestamp: g.createdAt.toISOString()
+        id: g.id, 
+        type: "goal", 
+        title: g.title, 
+        content: `Project: ${projectName}\nAssignee: ${assigneeEmail}\nDescription: ${g.description || ""}`, 
+        metadata: { status: g.status }, 
+        timestamp: g.createdAt.toISOString()
       });
     }
 
     // Search submissions
     const submissions = await prisma.submission.findMany({
-      where: { content: { contains: q } },
-      take: 10
+      where: companyId ? { user: { companyId } } : undefined,
+      include: {
+        user: { select: { email: true } }
+      },
+      take: 50
     });
     for (const s of submissions) {
+      const authorEmail = s.user ? s.user.email : "Unknown User";
       knowledge.push({
-        id: s.id, type: "submission", title: s.type, content: s.content, metadata: { type: s.type }, timestamp: s.createdAt.toISOString()
+        id: s.id, 
+        type: "submission", 
+        title: s.type, 
+        content: `Author: ${authorEmail}\nContent: ${s.content}`, 
+        metadata: { type: s.type }, 
+        timestamp: s.createdAt.toISOString()
       });
     }
 

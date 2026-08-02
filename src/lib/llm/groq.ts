@@ -1,45 +1,80 @@
-export async function invokeGroq(systemPrompt: string, userPrompt: string, jsonMode: boolean = false): Promise<any> {
+export async function invokeGroq(
+  systemPrompt: string,
+  userPrompt: string,
+  jsonMode = false
+): Promise<any> {
   const apiKey = process.env.GROQ_API_KEY;
+
   if (!apiKey) {
-    throw new Error("GROQ_API_KEY is not defined in environment variables.");
+    throw new Error("GROQ_API_KEY is missing.");
   }
 
-  const payload: any = {
-    model: "llama3-70b-8192", // Groq fast LLM
+  // Default model if GROQ_MODEL isn't set
+  const model =
+    process.env.GROQ_MODEL || "openai/gpt-oss-120b";
+
+  console.log("Using Groq model:", model);
+
+  const payload: Record<string, any> = {
+    model,
     messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt }
+      {
+        role: "system",
+        content: systemPrompt,
+      },
+      {
+        role: "user",
+        content: userPrompt,
+      },
     ],
-    temperature: 0.1, 
+    temperature: 0.1,
   };
 
   if (jsonMode) {
-    payload.response_format = { type: "json_object" };
+    payload.response_format = {
+      type: "json_object",
+    };
   }
 
-  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${apiKey}`
-    },
-    body: JSON.stringify(payload)
-  });
+  const response = await fetch(
+    "https://api.groq.com/openai/v1/chat/completions",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    }
+  );
+
+  const text = await response.text();
 
   if (!response.ok) {
-    const errorBody = await response.text();
-    throw new Error(`Groq API Error (${response.status}): ${errorBody}`);
+    console.error("Groq Response:", text);
+    throw new Error(`Groq API Error (${response.status}): ${text}`);
   }
 
-  const data = await response.json();
-  const content = data.choices[0].message.content;
+  let data;
+
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error("Groq returned invalid JSON.");
+  }
+
+  const content = data?.choices?.[0]?.message?.content;
+
+  if (!content) {
+    throw new Error("Groq returned an empty response.");
+  }
 
   if (jsonMode) {
     try {
       return JSON.parse(content);
-    } catch (e) {
-      console.error("Failed to parse Groq JSON response:", content);
-      throw new Error("Invalid JSON returned by Groq.");
+    } catch {
+      console.error("Groq JSON Response:", content);
+      throw new Error("Groq returned invalid JSON.");
     }
   }
 

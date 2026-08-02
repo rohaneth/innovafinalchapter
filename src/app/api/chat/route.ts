@@ -1,44 +1,199 @@
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 import { invokeGroq } from "@/lib/llm/groq";
 import { OrganizationKnowledgeService } from "@/lib/knowledge/service";
 
 export async function POST(req: Request) {
-  try {
-    const { message, history = [] } = await req.json();
+  console.log("\n=============================");
+  console.log("🚀 /api/chat request received");
+  console.log("=============================\n");
 
-    if (!message) {
-      return NextResponse.json({ error: "Message is required" }, { status: 400 });
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const companyId = (session.user as any).companyId;
+
+    // Parse request body
+    let body;
+
+    try {
+      body = await req.json();
+    } catch (err) {
+      console.error("❌ Failed to parse JSON body:", err);
+
+      return NextResponse.json(
+        { error: "Invalid JSON body" },
+        { status: 400 }
+      );
     }
 
-    // Retrieve relevant organizational knowledge
-    const knowledge = await OrganizationKnowledgeService.searchKnowledge(message);
-    const knowledgeContext = knowledge.map(k => `[Source: ${k.type.toUpperCase()} ID: ${k.id}]\n${k.title}\n${k.content}`).join("\n\n");
+    const {
+      message,
+      history = [],
+    }: {
+      message?: string;
+      history?: { role: string; content: string }[];
+    } = body;
 
-    const systemPrompt = `You are the Organization AI Assistant. You have access to the Organization Knowledge Hub.
-You must answer questions based ONLY on the provided context below. 
-Every claim or answer you provide MUST include evidence citations (e.g., "[Source: GOAL ID: 123]").
-If the context does not contain the answer, say "I have insufficient evidence to answer this question."
+    console.log("📩 Message:", message);
 
-Context from Knowledge Hub:
+    if (!message || typeof message !== "string") {
+      return NextResponse.json(
+        { error: "Message is required." },
+        { status: 400 }
+      );
+    }
+
+    console.log("🔑 GROQ KEY FOUND:", !!process.env.GROQ_API_KEY);
+
+    // ------------------------
+    // Search knowledge
+    // ------------------------
+
+    console.log("🔍 Searching knowledge...");
+
+    let knowledge = [];
+
+    try {
+      knowledge =
+        (await OrganizationKnowledgeService.searchKnowledge(message, companyId)) ?? [];
+
+      console.log(`✅ Found ${knowledge.length} knowledge entries`);
+    } catch (err) {
+      console.error("❌ Knowledge search failed");
+      console.error(err);
+
+      return NextResponse.json(
+        {
+          error: "Knowledge search failed",
+          details: err instanceof Error ? err.message : String(err),
+        },
+        { status: 500 }
+      );
+    }
+
+    // ------------------------
+    // Build knowledge context
+    // ------------------------
+
+    const knowledgeContext =
+      knowledge.length > 0
+        ? knowledge
+          .map(
+            (k: any) => `
+[Source: ${k.type?.toUpperCase() ?? "UNKNOWN"} ID: ${k.id}]
+Title: ${k.title ?? "Untitled"}
+
+${k.content ?? ""}
+`
+          )
+          .join("\n--------------------------------\n")
+        : "No relevant organizational knowledge found.";
+
+    // ------------------------
+    // System Prompt
+    // ------------------------
+
+    const systemPrompt = `
+You are the Organization AI Assistant.
+
+Use the provided organizational knowledge to answer the user's questions.
+
+Rules:
+1. Be extremely helpful and conversational. Infer answers aggressively. 
+   - If asked about "tasks" or "commits", look at "goals", "progress", and "submissions". 
+   - If asked who deserves a promotion, look at who has high progress, good reviews, or completed goals.
+   - If asked to summarize, just summarize the data provided.
+2. Every factual statement MUST include a citation if possible (e.g. [Source: GOAL ID: 123]).
+3. ONLY if the provided knowledge contains absolutely no related information, reply:
+   "I have insufficient evidence to answer this question."
+
+Knowledge:
+
 ${knowledgeContext}
 `;
 
-    // Construct prompt with history
+    // ------------------------
+    // Build user prompt
+    // ------------------------
+
     let userPrompt = "";
-    if (history.length > 0) {
-      userPrompt += "Previous conversation:\n";
-      history.forEach((h: any) => {
-        userPrompt += `${h.role}: ${h.content}\n`;
-      });
+
+    if (Array.isArray(history) && history.length > 0) {
+      userPrompt += "Conversation History:\n\n";
+
+      for (const item of history) {
+        userPrompt += `${item.role}: ${item.content}\n`;
+      }
+
       userPrompt += "\n";
     }
-    userPrompt += `Current Question: ${message}`;
 
-    const answer = await invokeGroq(systemPrompt, userPrompt, false);
+    userPrompt += `Current Question:\n${message}`;
 
-    return NextResponse.json({ answer, sources: knowledge.map(k => ({ id: k.id, type: k.type, title: k.title })) });
-  } catch (error: any) {
-    console.error("Error in /api/chat:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    console.log("📤 Calling Groq...");
+
+    // ------------------------
+    // Call LLM
+    // ------------------------
+
+    let answer = "";
+
+    try {
+      answer = await invokeGroq(
+        systemPrompt,
+        userPrompt,
+        false
+      );
+
+      console.log("✅ Groq response received");
+    } catch (err) {
+      console.error("❌ Groq invocation failed");
+      console.error(err);
+
+      return NextResponse.json(
+        {
+          error: "Groq API failed",
+          details: err instanceof Error ? err.message : String(err),
+        },
+        { status: 500 }
+      );
+    }
+
+    // ------------------------
+    // Success
+    // ------------------------
+
+    return NextResponse.json({
+      success: true,
+      answer,
+      sources: knowledge.map((k: any) => ({
+        id: k.id,
+        type: k.type,
+        title: k.title,
+      })),
+    });
+  } catch (err) {
+    console.error("\n=======================");
+    console.error("💥 UNEXPECTED ERROR");
+    console.error("=======================");
+    console.error(err);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: err instanceof Error ? err.message : "Unknown error",
+        stack:
+          process.env.NODE_ENV === "development"
+            ? err instanceof Error
+              ? err.stack
+              : undefined
+            : undefined,
+      },
+      { status: 500 }
+    );
   }
 }

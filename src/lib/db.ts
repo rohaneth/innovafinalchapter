@@ -5,9 +5,8 @@ import { PrismaLibSql } from "@prisma/adapter-libsql";
 
 const prismaClientSingleton = () => {
   const dbPath = path.resolve(process.cwd(), "dev.db").replace(/\\/g, "/");
-  const dbUrl = `file:${dbPath}`;
   
-  const adapter = new PrismaLibSql({ url: dbUrl });
+  const adapter = new PrismaLibSql({ url: `file:${dbPath}` });
   
   return new PrismaClient({ adapter });
 };

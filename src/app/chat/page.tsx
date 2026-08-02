@@ -58,7 +58,7 @@ export default function ChatPage() {
               <p className="text-gray-500 max-w-md">Get instant, evidence-backed answers about projects, employee performance, and goals.</p>
               <div className="flex flex-wrap gap-2 justify-center mt-4">
                 {suggestedQuestions.map((q, idx) => (
-                  <button key={idx} onClick={() => setInput(q)} className="bg-blue-50 text-blue-600 px-4 py-2 rounded-full text-sm hover:bg-blue-100 transition">
+                  <button key={idx} onClick={() => setInput(q)} suppressHydrationWarning className="bg-blue-50 text-blue-600 px-4 py-2 rounded-full text-sm hover:bg-blue-100 transition">
                     {q}
                   </button>
                 ))}
@@ -103,11 +103,13 @@ export default function ChatPage() {
               placeholder="Ask anything about the organization..."
               className="flex-1 border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
               disabled={loading}
+              suppressHydrationWarning
             />
             <button
               onClick={sendMessage}
               disabled={loading || !input.trim()}
               className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 transition shadow-sm"
+              suppressHydrationWarning
             >
               Send
             </button>
