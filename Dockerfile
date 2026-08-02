@@ -16,6 +16,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN echo "Cache bust for dev.db"
+RUN ls -la /app
+RUN test -f /app/dev.db && echo "dev.db exists" || (echo "dev.db missing" && exit 1)
+
 
 # Generate Prisma Client
 RUN npx prisma generate
