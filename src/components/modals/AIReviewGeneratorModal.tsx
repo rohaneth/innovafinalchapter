@@ -237,7 +237,7 @@ export function AIReviewGeneratorModal({
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            background: "rgba(124, 92, 252, 0.05)",
+            background: "var(--bg-surface-hover)",
           }}
         >
           <div>
@@ -279,30 +279,46 @@ export function AIReviewGeneratorModal({
           )}
 
           {loading ? (
-            <div style={{ textAlign: "center", padding: "40px 0" }}>
-              <div className="spinner" style={{ margin: "0 auto 12px", width: "40px", height: "40px", border: "4px solid rgba(255,255,255,0.1)", borderTop: "4px solid var(--accent-primary)", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
-              <div style={{ fontWeight: "bold", fontSize: "16px", marginBottom: "6px" }}>Running Multi-Agent AI Pipeline...</div>
-              <p style={{ color: "var(--text-muted)", fontSize: "13px" }}>
-                Collecting metrics → Searching vector database → Synthesizing evidence → Auditing for bias
+            <div style={{ textAlign: "center", padding: "60px 20px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+              <div className="spinner" style={{ margin: "0 auto 24px", width: "48px", height: "48px", border: "4px solid rgba(255,255,255,0.05)", borderTop: "4px solid var(--accent-primary)", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
+              <h4 style={{ fontWeight: "bold", fontSize: "18px", marginBottom: "16px", color: "var(--text-primary)" }}>Executing Multi-Agent Pipeline</h4>
+              
+              <div style={{ display: "flex", gap: "12px", fontSize: "13px", color: "var(--text-muted)", alignItems: "center" }}>
+                <span style={{ color: "var(--accent-primary)", fontWeight: "bold" }}>1. Collector</span>
+                <span>→</span>
+                <span style={{ color: "var(--accent-primary)", fontWeight: "bold" }}>2. Retriever</span>
+                <span>→</span>
+                <span style={{ color: "var(--accent-primary)", fontWeight: "bold" }}>3. Synthesizer</span>
+                <span>→</span>
+                <span style={{ color: "var(--accent-primary)", fontWeight: "bold" }}>4. Auditor</span>
+              </div>
+              <p style={{ marginTop: "16px", fontSize: "12px", color: "var(--text-muted)", maxWidth: "400px", lineHeight: "1.5" }}>
+                Securely aggregating metrics, performing RAG vector searches, synthesizing citations, and running strict heuristic bias checks...
               </p>
             </div>
           ) : (
             <>
               {/* Confidence Score & Audit Summary */}
               {review?.draftReview?.confidence && (
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "8px" }}>
-                  <div style={{ padding: "12px", background: "rgba(16, 185, 129, 0.05)", border: "1px solid rgba(16, 185, 129, 0.2)", borderRadius: "6px" }}>
-                    <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>AI Confidence Score</div>
-                    <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
-                      <span style={{ fontSize: "24px", fontWeight: "bold", color: "var(--state-success)" }}>{review.draftReview.confidence.overallConfidence}%</span>
-                      <span style={{ fontSize: "12px" }}>Evidence Strength: {review.draftReview.confidence.evidenceStrength}</span>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "16px" }}>
+                  <div style={{ padding: "16px", background: "rgba(16, 185, 129, 0.05)", border: "1px solid rgba(16, 185, 129, 0.2)", borderRadius: "8px" }}>
+                    <div style={{ fontSize: "13px", color: "var(--text-muted)", marginBottom: "8px", fontWeight: "bold", textTransform: "uppercase", letterSpacing: "0.5px" }}>AI Confidence Score</div>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: "12px" }}>
+                      <span style={{ fontSize: "32px", fontWeight: "900", color: "var(--state-success)" }}>{review.draftReview.confidence.overallConfidence}%</span>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                         <span style={{ fontSize: "13px", fontWeight: "bold" }}>Strength: {review.draftReview.confidence.evidenceStrength}</span>
+                         <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>{review.draftReview.confidence.evidenceCount} Citations found</span>
+                      </div>
                     </div>
                   </div>
-                  <div style={{ padding: "12px", background: "rgba(244, 63, 94, 0.05)", border: "1px solid rgba(244, 63, 94, 0.2)", borderRadius: "6px" }}>
-                    <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>Bias Audit Summary</div>
-                    <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
-                      <span style={{ fontSize: "24px", fontWeight: "bold", color: "var(--state-error)" }}>{review.auditFlags?.length || 0}</span>
-                      <span style={{ fontSize: "12px" }}>Flags Detected (Ungrounded Claims, Recency Bias, etc.)</span>
+                  <div style={{ padding: "16px", background: "rgba(244, 63, 94, 0.05)", border: "1px solid rgba(244, 63, 94, 0.2)", borderRadius: "8px" }}>
+                    <div style={{ fontSize: "13px", color: "var(--text-muted)", marginBottom: "8px", fontWeight: "bold", textTransform: "uppercase", letterSpacing: "0.5px" }}>Bias Audit Summary</div>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: "12px" }}>
+                      <span style={{ fontSize: "32px", fontWeight: "900", color: "var(--state-error)" }}>{review.auditFlags?.length || 0}</span>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                         <span style={{ fontSize: "13px", fontWeight: "bold" }}>Flags Detected</span>
+                         <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>{review.auditFlags?.length === 0 ? "Optimal Objectivity" : "Review Required"}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -321,11 +337,12 @@ export function AIReviewGeneratorModal({
                       width: "100%",
                       padding: "10px",
                       borderRadius: "6px",
-                      background: "var(--bg-base)",
+                      background: "var(--bg-surface)",
                       color: "var(--text-primary)",
-                      border: "1px solid var(--border-default)",
+                      border: "1px solid #CBD5E1",
+                      boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
                       fontSize: "14px",
-                      fontWeight: "bold",
+                      fontWeight: "600",
                     }}
                   >
                     <option value="Excellent">⭐ Excellent</option>
@@ -337,7 +354,7 @@ export function AIReviewGeneratorModal({
 
                 <div style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
                   <div style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "6px" }}>Review Draft Version</div>
-                  <div style={{ padding: "8px 12px", background: "var(--bg-base)", border: "1px solid var(--border-default)", borderRadius: "6px", fontSize: "13px" }}>
+                  <div style={{ padding: "8px 12px", background: "var(--bg-surface-hover)", border: "1px solid #CBD5E1", borderRadius: "6px", fontSize: "13px" }}>
                     Status: <strong style={{ color: "var(--accent-primary)" }}>{review?.status || "DRAFT"}</strong> | DB ID {review?.reviewId || review?.id || "N/A"}
                   </div>
                 </div>
@@ -351,7 +368,7 @@ export function AIReviewGeneratorModal({
                   </label>
                   <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                     {review.auditFlags.map((flag: any) => (
-                      <div key={flag.id} style={{ padding: "10px", background: "var(--bg-base)", borderLeft: "3px solid var(--state-error)", borderRadius: "4px" }}>
+                      <div key={flag.id} style={{ padding: "12px", background: "#FEF2F2", border: "1px solid #FCA5A5", borderLeft: "4px solid var(--state-error)", borderRadius: "6px" }}>
                         <div style={{ fontSize: "12px", fontWeight: "bold", marginBottom: "4px" }}>
                           {flag.biasType.replace(/_/g, ' ').toUpperCase()} | Severity: {getSeverityBadge(flag.severity)}
                         </div>
@@ -378,12 +395,13 @@ export function AIReviewGeneratorModal({
                     width: "100%",
                     padding: "10px",
                     borderRadius: "6px",
-                    background: "var(--bg-base)",
+                    background: "var(--bg-surface)",
                     color: "var(--text-primary)",
-                    border: "1px solid var(--border-default)",
+                    border: "1px solid #CBD5E1",
+                    boxShadow: "inset 0 1px 2px rgba(0,0,0,0.02)",
                     fontSize: "13px",
-                    lineHeight: "1.4",
-                    fontFamily: "monospace"
+                    lineHeight: "1.5",
+                    fontFamily: "var(--font-mono, monospace)"
                   }}
                 />
               </div>
@@ -401,12 +419,13 @@ export function AIReviewGeneratorModal({
                     width: "100%",
                     padding: "10px",
                     borderRadius: "6px",
-                    background: "var(--bg-base)",
+                    background: "var(--bg-surface)",
                     color: "var(--text-primary)",
-                    border: "1px solid var(--border-default)",
+                    border: "1px solid #CBD5E1",
+                    boxShadow: "inset 0 1px 2px rgba(0,0,0,0.02)",
                     fontSize: "13px",
-                    lineHeight: "1.4",
-                    fontFamily: "monospace"
+                    lineHeight: "1.5",
+                    fontFamily: "var(--font-mono, monospace)"
                   }}
                 />
               </div>
@@ -424,12 +443,13 @@ export function AIReviewGeneratorModal({
                     width: "100%",
                     padding: "10px",
                     borderRadius: "6px",
-                    background: "var(--bg-base)",
+                    background: "var(--bg-surface)",
                     color: "var(--text-primary)",
-                    border: "1px solid var(--border-default)",
+                    border: "1px solid #CBD5E1",
+                    boxShadow: "inset 0 1px 2px rgba(0,0,0,0.02)",
                     fontSize: "13px",
-                    lineHeight: "1.4",
-                    fontFamily: "monospace"
+                    lineHeight: "1.5",
+                    fontFamily: "var(--font-mono, monospace)"
                   }}
                 />
               </div>
@@ -447,12 +467,13 @@ export function AIReviewGeneratorModal({
                     width: "100%",
                     padding: "10px",
                     borderRadius: "6px",
-                    background: "var(--bg-base)",
+                    background: "var(--bg-surface)",
                     color: "var(--text-primary)",
-                    border: "1px solid var(--border-default)",
+                    border: "1px solid #CBD5E1",
+                    boxShadow: "inset 0 1px 2px rgba(0,0,0,0.02)",
                     fontSize: "13px",
-                    lineHeight: "1.4",
-                    fontFamily: "monospace"
+                    lineHeight: "1.5",
+                    fontFamily: "var(--font-mono, monospace)"
                   }}
                 />
               </div>
@@ -460,10 +481,10 @@ export function AIReviewGeneratorModal({
               {/* 7. Evidence Used */}
               <div
                 style={{
-                  padding: "14px",
+                  padding: "16px",
                   borderRadius: "8px",
-                  background: "var(--bg-base)",
-                  border: "1px solid var(--border-default)",
+                  background: "var(--bg-surface-hover)",
+                  border: "1px solid #CBD5E1",
                 }}
               >
                 <h4 style={{ fontSize: "13px", fontWeight: "bold", margin: "0 0 8px 0" }}>🔍 Transparency: Evidence Processed</h4>
@@ -512,7 +533,8 @@ export function AIReviewGeneratorModal({
             <Button
               onClick={() => handleSave("APPROVED")}
               disabled={loading || saving}
-              style={{ background: "var(--state-success)", color: "#000", fontWeight: "bold" }}
+              className="btn-primary"
+              style={{ background: "var(--state-success)", color: "#ffffff", fontWeight: "600" }}
             >
               {saving ? "Finalizing..." : "✅ Approve & Finalize Review"}
             </Button>

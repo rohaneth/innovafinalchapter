@@ -127,7 +127,7 @@ export function TopNav({ title }: TopNavProps) {
               border: "1px solid var(--border-default)",
               borderRadius: "10px",
               padding: "8px 0",
-              boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
+              boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)",
               zIndex: 100,
               display: "flex",
               flexDirection: "column",

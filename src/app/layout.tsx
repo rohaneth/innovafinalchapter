@@ -1,6 +1,9 @@
 import "./globals.css";
 import React from "react";
 import { Providers } from "@/components/layout/Providers";
+import { Inter } from "next/font/google";
+
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
   title: "Bias-Aware 360° Review Intelligence System",
@@ -14,7 +17,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>
+      <body className={inter.className}>
         <Providers>{children}</Providers>
       </body>
     </html>
