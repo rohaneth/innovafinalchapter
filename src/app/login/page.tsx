@@ -181,45 +181,7 @@ export default function LoginPage() {
         <hr style={{ borderColor: "var(--border-default)", margin: "8px 0", borderTop: 0 }} />
 
         {/* Quick Role Switchers */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-          <span style={{ fontSize: "12px", color: "var(--text-muted)", textAlign: "center" }}>
-            Or sign in instantly as a Demo User:
-          </span>
-          <button
-            type="button"
-            onClick={() => handleQuickLogin("manager@company.com")}
-            disabled={loading}
-            style={{
-              padding: "10px",
-              borderRadius: "6px",
-              border: "1px solid var(--accent-primary)",
-              background: "rgba(224, 53, 162, 0.1)",
-              color: "var(--accent-primary)",
-              fontWeight: "600",
-              fontSize: "13px",
-              cursor: "pointer",
-            }}
-          >
-            👔 Sign In as Manager (manager@company.com)
-          </button>
-          <button
-            type="button"
-            onClick={() => handleQuickLogin("employee@company.com")}
-            disabled={loading}
-            style={{
-              padding: "10px",
-              borderRadius: "6px",
-              border: "1px solid var(--accent-secondary)",
-              background: "rgba(139, 92, 246, 0.1)",
-              color: "var(--accent-secondary)",
-              fontWeight: "600",
-              fontSize: "13px",
-              cursor: "pointer",
-            }}
-          >
-            👤 Sign In as Employee (employee@company.com)
-          </button>
-        </div>
+
       </Card>
 
       <p style={{ marginTop: "24px", color: "var(--text-muted)", fontSize: "14px" }}>
