@@ -54,6 +54,43 @@ export function TopNav({ title }: TopNavProps) {
       </h1>
 
       <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "16px", position: "relative" }} ref={dropdownRef}>
+        {/* Chatbot Navigation Button */}
+        <Link
+          href="/chat"
+          title="Open Organization AI"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            padding: "8px 16px",
+            borderRadius: "20px",
+            backgroundColor: "var(--accent-glow)",
+            border: "1px solid var(--accent-primary)",
+            color: "var(--accent-primary)",
+            fontWeight: "600",
+            fontSize: "14px",
+            textDecoration: "none",
+            transition: "all 0.2s ease",
+            boxShadow: "0 0 12px var(--accent-glow)",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = "var(--accent-primary)";
+            e.currentTarget.style.color = "#ffffff";
+            e.currentTarget.style.transform = "translateY(-1px)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = "var(--accent-glow)";
+            e.currentTarget.style.color = "var(--accent-primary)";
+            e.currentTarget.style.transform = "translateY(0)";
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            <path d="M12 7v0M12 11v0M12 15v0" />
+          </svg>
+          Ask AI Assistant
+        </Link>
+
         {/* Clickable Profile Avatar */}
         <button
           onClick={() => setDropdownOpen(!dropdownOpen)}
