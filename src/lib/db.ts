@@ -1,12 +1,11 @@
 import { PrismaClient } from "@prisma/client";
-import path from "path";
-
-import { PrismaLibSql } from "@prisma/adapter-libsql";
+import { Pool } from "pg";
+import { PrismaPg } from "@prisma/adapter-pg";
 
 const prismaClientSingleton = () => {
-  const dbPath = path.resolve(process.cwd(), "dev.db").replace(/\\/g, "/");
-  
-  const adapter = new PrismaLibSql({ url: `file:${dbPath}` });
+  const connectionString = process.env.DATABASE_URL;
+  const pool = new Pool({ connectionString });
+  const adapter = new PrismaPg(pool);
   
   return new PrismaClient({ adapter });
 };
