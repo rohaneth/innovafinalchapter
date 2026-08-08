@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "node .next/standalone/server.js",
     "typecheck": "tsc --noEmit",
     "test:agent": "npx tsx --env-file=.env src/lib/agents/__tests__/test-graph.ts"
   },
